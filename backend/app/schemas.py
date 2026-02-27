@@ -1,0 +1,171 @@
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import List, Literal, Optional
+
+from pydantic import BaseModel, ConfigDict
+
+
+# ----- Shared / utility schemas -----
+
+
+class ConversationMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+# ----- Stop schemas -----
+
+
+class StopBase(BaseModel):
+    label: str
+    resolved: str
+    lat: float
+    lng: float
+    note: Optional[str] = None
+    position: int
+
+
+class StopCreate(StopBase):
+    pass
+
+
+class StopUpdate(BaseModel):
+    label: Optional[str] = None
+    resolved: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    note: Optional[str] = None
+    position: Optional[int] = None
+
+
+class Stop(StopBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    chroma_id: Optional[str] = None
+
+
+# ----- Trip schemas -----
+
+
+class TripBase(BaseModel):
+    name: str
+    notes: Optional[str] = None
+
+
+class TripCreate(TripBase):
+    stops: List[StopCreate]
+
+
+class TripUpdate(BaseModel):
+    name: Optional[str] = None
+    notes: Optional[str] = None
+    stops: Optional[List[StopCreate]] = None
+
+
+class Trip(TripBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    chroma_id: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    last_used: Optional[datetime] = None
+    use_count: int
+    stops: List[Stop] = []
+
+
+class TripSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    stop_count: int
+    last_used: Optional[datetime] = None
+    use_count: int
+
+
+class TripSearchResult(BaseModel):
+    id: int
+    name: str
+    stop_count: int
+    similarity: float
+
+
+class TripsSearchResponse(BaseModel):
+    results: List[TripSearchResult]
+
+
+# ----- Trip history schemas -----
+
+
+class TripHistory(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    trip_id: Optional[int] = None
+    trip_name: Optional[str] = None
+    raw_input: Optional[str] = None
+    stops_json: str
+    launched_at: datetime
+
+
+class HistoryListResponse(BaseModel):
+    items: List[TripHistory]
+
+
+# ----- LLM log schemas -----
+
+
+class LLMLog(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    timestamp: datetime
+    model: str
+    prompt_version: str
+    input_tokens: Optional[int] = None
+    output_tokens: Optional[int] = None
+    latency_ms: Optional[int] = None
+    success: bool
+    error_message: Optional[str] = None
+    run_id: Optional[str] = None
+
+
+class LLMLogListResponse(BaseModel):
+    items: List[LLMLog]
+    total: Optional[int] = None
+
+
+# ----- Agent chat schemas -----
+
+
+class AgentChatRequest(BaseModel):
+    message: str
+    conversation_history: List[ConversationMessage] = []
+    session_id: Optional[str] = None
+
+
+class AgentChatResponse(BaseModel):
+    reply: str
+    stops: List[Stop] = []
+    trip_found: bool = False
+    trip_id: Optional[int] = None
+    needs_confirmation: bool = False
+    agent_steps: Optional[int] = None
+
+
+# ----- RAG schemas -----
+
+
+class HistoryQuestionRequest(BaseModel):
+    question: str
+
+
+class HistoryQuestionResponse(BaseModel):
+    answer: str
+    sources_used: int
+
+

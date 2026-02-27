@@ -1,0 +1,11 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+chroma_db/
+routeeasy.db
+node_modules/
+dist/
+.DS_Store
