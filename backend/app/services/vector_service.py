@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-import chromadb
-from chromadb.config import Settings as ChromaSettings
-from sentence_transformers import SentenceTransformer
+import chromadb  # pyright: ignore[reportMissingImports]
+from chromadb.config import Settings as ChromaSettings  # pyright: ignore[reportMissingImports]
+from sentence_transformers import SentenceTransformer  # pyright: ignore[reportMissingImports]
 
 from app.config import settings
 
