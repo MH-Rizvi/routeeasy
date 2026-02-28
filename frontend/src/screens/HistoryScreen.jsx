@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from 'react';
 import useTripStore from '../store/tripStore';
-import useChatStore from '../store/chatStore';
+import { queryRAG } from '../api/client';
 
 const RAG_EXAMPLES = [
     'What route did I do last Friday?',
@@ -16,11 +16,11 @@ const RAG_EXAMPLES = [
 
 export default function HistoryScreen() {
     const { history, loading: histLoading, fetchHistory } = useTripStore();
-    const { askRAGQuestion, loading: ragLoading } = useChatStore();
 
     const [ragQuestion, setRagQuestion] = useState('');
     const [ragAnswer, setRagAnswer] = useState(null);
     const [ragError, setRagError] = useState(null);
+    const [ragLoading, setRagLoading] = useState(false);
 
     useEffect(() => {
         fetchHistory();
@@ -32,9 +32,10 @@ export default function HistoryScreen() {
 
         setRagError(null);
         setRagAnswer(null);
+        setRagLoading(true);
 
         try {
-            const result = await askRAGQuestion(q);
+            const result = await queryRAG(q);
             if (result) {
                 setRagAnswer(result);
             } else {
@@ -42,6 +43,8 @@ export default function HistoryScreen() {
             }
         } catch {
             setRagError('Something went wrong. Please try again.');
+        } finally {
+            setRagLoading(false);
         }
     };
 
@@ -103,7 +106,9 @@ export default function HistoryScreen() {
                             </span>
                         </div>
                         <p className="text-base text-body whitespace-pre-wrap">
-                            {ragAnswer.answer || ragAnswer}
+                            {typeof ragAnswer === 'string'
+                                ? ragAnswer
+                                : ragAnswer.answer || JSON.stringify(ragAnswer)}
                         </p>
                         {ragAnswer.sources_used > 0 && (
                             <p className="text-xs text-secondary mt-2">

@@ -4,14 +4,8 @@ from __future__ import annotations
 import logging
 import re
 
-from groq import AsyncGroq  # pyright: ignore[reportMissingImports]
-
-from app.config import settings
-
 
 logger = logging.getLogger(__name__)
-
-groq_client = AsyncGroq(api_key=settings.groq_api_key)
 
 # ── Fast allowlist — these always pass without an LLM call ────────────
 _GREETING_WORDS = {

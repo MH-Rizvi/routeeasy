@@ -5,17 +5,14 @@ import logging
 import time
 from typing import Any, Dict
 
-from groq import AsyncGroq  # pyright: ignore[reportMissingImports]
-
 from app.config import settings
 from app.database import SessionLocal
 from app import models
 from app.services.vector_service import history_collection, embed
+from app.services.groq_client import groq_rotator
 
 
 logger = logging.getLogger(__name__)
-
-groq_client = AsyncGroq(api_key=settings.groq_api_key)
 
 
 RAG_SYSTEM_PROMPT_v1 = """
@@ -57,12 +54,12 @@ async def answer_history_question(question: str) -> Dict[str, Any]:
     context_lines = [f"- {doc}" for doc in documents]
     context = "\n".join(context_lines)
 
-    # Step 4: Generate grounded answer via Groq
+    # Step 4: Generate grounded answer via Groq (with key rotation)
     start_time = time.time()
     error_message = None
 
     try:
-        response = await groq_client.chat.completions.create(
+        response = await groq_rotator.async_chat_completion(
             model="llama-3.3-70b-versatile",
             max_tokens=300,
             messages=[

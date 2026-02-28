@@ -140,7 +140,9 @@ const useTripStore = create((set, get) => ({
         get()._startLoading();
         try {
             const data = await getHistory();
-            set({ history: data, loading: false });
+            // API returns { items: [...] } — extract the array
+            const items = Array.isArray(data) ? data : (data?.items || []);
+            set({ history: items, loading: false });
         } catch (err) {
             get()._setError(err);
         }

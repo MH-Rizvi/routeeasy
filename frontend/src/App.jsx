@@ -13,6 +13,7 @@ import HomeScreen from './screens/HomeScreen';
 import ChatScreen from './screens/ChatScreen';
 import PreviewScreen from './screens/PreviewScreen';
 import TripsScreen from './screens/TripsScreen';
+import TripDetailScreen from './screens/TripDetailScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import LLMLogsScreen from './screens/LLMLogsScreen';
 
@@ -70,6 +71,7 @@ function AppShell() {
                     <Route path="/chat" element={<ChatScreen />} />
                     <Route path="/preview" element={<PreviewScreen />} />
                     <Route path="/trips" element={<TripsScreen />} />
+                    <Route path="/trips/:tripId" element={<TripDetailScreen />} />
                     <Route path="/history" element={<HistoryScreen />} />
                     <Route path="/admin/logs" element={<LLMLogsScreen />} />
                 </Routes>
