@@ -1,9 +1,7 @@
 /**
- * App.jsx — Root component with React Router v6.
- * School bus themed bottom tab bar navigation.
+ * App.jsx — Root with dark enterprise tab bar.
  */
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom';
-
 import HomeScreen from './screens/HomeScreen';
 import ChatScreen from './screens/ChatScreen';
 import PreviewScreen from './screens/PreviewScreen';
@@ -13,16 +11,36 @@ import HistoryScreen from './screens/HistoryScreen';
 import LLMLogsScreen from './screens/LLMLogsScreen';
 
 const TABS = [
-    { path: '/', label: 'Home', icon: '🏠', activeIcon: '🏡' },
-    { path: '/chat', label: 'Chat', icon: '💬', activeIcon: '🗨️' },
-    { path: '/trips', label: 'Trips', icon: '🗺️', activeIcon: '🚌' },
-    { path: '/history', label: 'History', icon: '📋', activeIcon: '📖' },
-    { path: '/admin/logs', label: 'Logs', icon: '📊', activeIcon: '📈' },
+    {
+        path: '/', label: 'Home', icon: (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+        )
+    },
+    {
+        path: '/chat', label: 'Chat', icon: (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+        )
+    },
+    {
+        path: '/trips', label: 'Trips', icon: (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="10" r="3" /><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z" /></svg>
+        )
+    },
+    {
+        path: '/history', label: 'History', icon: (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+        )
+    },
+    {
+        path: '/admin/logs', label: 'Logs', icon: (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
+        )
+    },
 ];
 
 function BottomTabBar() {
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 glass-bar border-t border-chalk-200 safe-area-bottom">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 glass-bar border-t border-border safe-area-bottom">
             <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
                 {TABS.map((tab) => (
                     <NavLink
@@ -30,22 +48,18 @@ function BottomTabBar() {
                         to={tab.path}
                         end={tab.path === '/'}
                         className={({ isActive }) =>
-                            `flex flex-col items-center justify-center min-w-touch min-h-touch px-2 py-1 rounded-xl transition-all duration-200 ${isActive
-                                ? 'text-bus-800 font-semibold scale-110'
-                                : 'text-chalk-500 hover:text-chalk-700'
+                            `relative flex flex-col items-center justify-center min-w-touch min-h-touch px-2 py-1 transition-colors duration-150 ${isActive ? 'text-accent' : 'text-text-muted hover:text-text-secondary'
                             }`
                         }
                     >
                         {({ isActive }) => (
                             <>
-                                <span className={`text-xl leading-none transition-transform duration-200 ${isActive ? 'scale-110' : ''}`}>
-                                    {isActive ? tab.activeIcon : tab.icon}
-                                </span>
-                                <span className={`text-[11px] mt-0.5 transition-colors ${isActive ? 'text-bus-700' : ''}`}>
+                                {tab.icon}
+                                <span className={`text-[10px] mt-1 font-medium tracking-wide ${isActive ? 'text-accent' : ''}`}>
                                     {tab.label}
                                 </span>
                                 {isActive && (
-                                    <div className="absolute bottom-1 w-1 h-1 rounded-full bg-bus-500" />
+                                    <span className="absolute -bottom-0 w-5 h-0.5 rounded-full bg-accent" />
                                 )}
                             </>
                         )}
@@ -61,7 +75,7 @@ function AppShell() {
     const hideTabBar = location.pathname.startsWith('/preview');
 
     return (
-        <div className="flex flex-col min-h-screen bg-background">
+        <div className="flex flex-col min-h-screen">
             <main className={`flex-1 overflow-y-auto ${hideTabBar ? '' : 'pb-20'}`}>
                 <Routes>
                     <Route path="/" element={<HomeScreen />} />

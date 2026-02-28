@@ -7,100 +7,72 @@ export default {
     theme: {
         extend: {
             colors: {
-                // School bus yellow palette
-                bus: {
-                    50: '#FFF9E6',
-                    100: '#FFF0B3',
-                    200: '#FFE680',
-                    300: '#FFD94D',
-                    400: '#FFCC1A',
-                    500: '#FFB800',  // Primary school bus yellow
-                    600: '#E6A600',
-                    700: '#CC9300',
-                    800: '#996E00',
-                    900: '#664A00',
-                },
-                // Warm neutrals
-                chalk: {
-                    50: '#FEFCF8',  // Page background — warm ivory
-                    100: '#FDF8EF',
-                    200: '#F5EFE6',
-                    300: '#E8DFD3',
-                    400: '#C4B8A8',
-                    500: '#9A8E7E',
-                    600: '#706557',
-                    700: '#504538',
-                    800: '#362E24',
-                    900: '#1E1A14',
-                },
-                // Accent colors
-                primary: '#FFB800',  // School bus yellow
-                'primary-dark': '#E6A600',
-                success: '#22C55E',
+                base: '#0A0F1E',
+                surface: '#111827',
+                elevated: '#1a2235',
+                accent: '#F59E0B',
+                'accent-dim': '#92400E',
+                'accent-glow': 'rgba(245, 158, 11, 0.15)',
+                'text-primary': '#F9FAFB',
+                'text-secondary': '#9CA3AF',
+                'text-muted': '#4B5563',
+                success: '#10B981',
                 danger: '#EF4444',
-                background: '#FEFCF8',
-                card: '#FFFFFF',
-                body: '#1E1A14',
-                secondary: '#706557',
-                // Chat bubbles
-                'user-bubble': '#FFB800',
-                'agent-bubble': '#FDF8EF',
-                // Tab bar
-                'tab-active': '#FFB800',
-                'tab-inactive': '#9A8E7E',
+                border: '#1F2937',
+                'border-hl': '#374151',
             },
             fontFamily: {
-                sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                sans: ['"DM Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+                mono: ['"DM Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
             },
             fontSize: {
                 base: ['16px', '24px'],
                 lg: ['18px', '28px'],
                 xl: ['20px', '30px'],
+                '2xl': ['24px', '32px'],
+                '3xl': ['30px', '36px'],
             },
-            minWidth: {
-                touch: '48px',
-            },
-            minHeight: {
-                touch: '48px',
-            },
+            minWidth: { touch: '48px' },
+            minHeight: { touch: '48px' },
             boxShadow: {
-                'card': '0 2px 12px rgba(30, 26, 20, 0.06)',
-                'card-lg': '0 4px 24px rgba(30, 26, 20, 0.10)',
-                'glow': '0 0 20px rgba(255, 184, 0, 0.25)',
+                'card': '0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)',
+                'card-lg': '0 4px 20px rgba(0,0,0,0.4)',
+                'glow': '0 0 20px rgba(245,158,11,0.25)',
+                'glow-lg': '0 0 40px rgba(245,158,11,0.20)',
             },
             borderRadius: {
+                'xl': '12px',
                 '2xl': '16px',
-                '3xl': '24px',
+                '3xl': '20px',
             },
             keyframes: {
-                'fade-in': {
-                    '0%': { opacity: '0', transform: 'translateY(8px)' },
+                'fade-up': {
+                    '0%': { opacity: '0', transform: 'translateY(12px)' },
                     '100%': { opacity: '1', transform: 'translateY(0)' },
                 },
                 'slide-up': {
                     '0%': { transform: 'translateY(100%)', opacity: '0' },
                     '100%': { transform: 'translateY(0)', opacity: '1' },
                 },
-                'bounce-in': {
-                    '0%': { transform: 'scale(0.9)', opacity: '0' },
-                    '50%': { transform: 'scale(1.02)' },
-                    '100%': { transform: 'scale(1)', opacity: '1' },
-                },
-                'pulse-dot': {
-                    '0%, 80%, 100%': { transform: 'scale(0.6)', opacity: '0.4' },
+                'pulse-amber': {
+                    '0%, 80%, 100%': { transform: 'scale(0.6)', opacity: '0.3' },
                     '40%': { transform: 'scale(1)', opacity: '1' },
                 },
                 'shimmer': {
                     '0%': { backgroundPosition: '-200% 0' },
                     '100%': { backgroundPosition: '200% 0' },
                 },
+                'glow-pulse': {
+                    '0%, 100%': { boxShadow: '0 0 15px rgba(245,158,11,0.2)' },
+                    '50%': { boxShadow: '0 0 25px rgba(245,158,11,0.4)' },
+                },
             },
             animation: {
-                'fade-in': 'fade-in 0.3s ease-out',
-                'slide-up': 'slide-up 0.3s ease-out',
-                'bounce-in': 'bounce-in 0.4s ease-out',
-                'pulse-dot': 'pulse-dot 1.4s infinite ease-in-out both',
+                'fade-up': 'fade-up 0.15s ease-out forwards',
+                'slide-up': 'slide-up 0.25s ease-out',
+                'pulse-amber': 'pulse-amber 1.4s infinite ease-in-out both',
                 'shimmer': 'shimmer 1.5s infinite linear',
+                'glow-pulse': 'glow-pulse 2s infinite ease-in-out',
             },
         },
     },

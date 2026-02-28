@@ -1,5 +1,5 @@
 /**
- * TripCard.jsx — School-bus-themed trip card with warm styling.
+ * TripCard.jsx — Dark enterprise trip card with amber accent.
  */
 import { useNavigate } from 'react-router-dom';
 import useTripStore from '../store/tripStore';
@@ -11,18 +11,12 @@ export default function TripCard({ trip }) {
 
     const stopCount = trip.stops?.length || 0;
     const lastUsed = trip.last_used
-        ? new Date(trip.last_used).toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-        })
+        ? new Date(trip.last_used).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
         : 'Never';
 
     const handleNavigate = async (e) => {
         e.stopPropagation();
-        if (!trip.stops || trip.stops.length < 2) {
-            navigate(`/trips/${trip.id}`);
-            return;
-        }
+        if (!trip.stops || trip.stops.length < 2) { navigate(`/trips/${trip.id}`); return; }
         await launchCurrentTrip(trip.id);
         const url = buildGoogleMapsUrl(trip.stops);
         if (url) window.open(url, '_blank');
@@ -30,35 +24,36 @@ export default function TripCard({ trip }) {
 
     return (
         <div
-            className="bg-card rounded-2xl shadow-card border border-chalk-200 p-5 flex flex-col gap-3 card-hover cursor-pointer"
+            className="card card-accent p-4 flex items-center gap-4 cursor-pointer"
             onClick={() => navigate(`/trips/${trip.id}`)}
             role="button"
             tabIndex={0}
         >
-            {/* Yellow accent strip at top */}
-            <div className="h-1 -mt-5 -mx-5 rounded-t-2xl bus-stripe" />
-
-            {/* Trip name */}
-            <h3 className="text-xl font-bold text-body truncate mt-2">
-                {trip.name}
-            </h3>
-
-            {/* Meta */}
-            <div className="flex items-center gap-3 text-chalk-500 text-sm">
-                <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-bus-400 inline-block" />
-                    {stopCount} stop{stopCount !== 1 ? 's' : ''}
-                </span>
-                <span className="text-chalk-300">•</span>
-                <span>{lastUsed}</span>
+            {/* Route dots visualization */}
+            <div className="flex flex-col items-center gap-1 shrink-0 py-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-accent" />
+                {stopCount > 2 && <span className="w-px h-3 bg-border-hl" />}
+                {stopCount > 2 && <span className="w-1.5 h-1.5 rounded-full bg-border-hl" />}
+                <span className="w-px h-3 bg-border-hl" />
+                <span className="w-2.5 h-2.5 rounded-full border-2 border-accent bg-transparent" />
             </div>
 
-            {/* Navigate button */}
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-bold text-text-primary truncate">{trip.name}</h3>
+                <div className="flex items-center gap-3 text-sm text-text-muted mt-1">
+                    <span className="font-mono">{stopCount} stops</span>
+                    <span className="text-border-hl">•</span>
+                    <span>{lastUsed}</span>
+                </div>
+            </div>
+
+            {/* Navigate */}
             <button
                 onClick={handleNavigate}
-                className="mt-1 w-full min-h-touch btn-primary rounded-xl text-lg flex items-center justify-center gap-2"
+                className="btn-accent min-h-touch px-4 text-sm shrink-0"
             >
-                🧭 Navigate Now
+                Navigate
             </button>
         </div>
     );

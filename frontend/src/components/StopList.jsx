@@ -23,9 +23,9 @@ export default function StopList({ stops, onReorder, onDelete }) {
 
     if (!stops || stops.length === 0) {
         return (
-            <div className="text-center py-8 text-chalk-500">
+            <div className="text-center py-8 text-text-muted">
                 <p className="text-lg">No stops yet</p>
-                <p className="text-sm mt-1 text-chalk-400">Chat with the AI to plan your route</p>
+                <p className="text-sm mt-1 text-text-muted">Chat with the AI to plan your route</p>
             </div>
         );
     }

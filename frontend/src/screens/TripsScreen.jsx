@@ -1,30 +1,19 @@
 /**
- * TripsScreen.jsx — Trips library with school bus theme.
+ * TripsScreen.jsx — Dark enterprise trips library with semantic search.
  */
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useTripStore from '../store/tripStore';
 import SemanticSearchBar from '../components/SemanticSearchBar';
 
-function SwipeableTripRow({ trip, onDelete, onTap }) {
+function TripRow({ trip, onDelete, onTap }) {
     const [offset, setOffset] = useState(0);
     const [swiping, setSwiping] = useState(false);
     const startX = useRef(0);
 
-    const handleTouchStart = (e) => {
-        startX.current = e.touches[0].clientX;
-        setSwiping(true);
-    };
-    const handleTouchMove = (e) => {
-        if (!swiping) return;
-        const diff = startX.current - e.touches[0].clientX;
-        if (diff > 0) setOffset(Math.min(diff, 100));
-    };
-    const handleTouchEnd = () => {
-        setSwiping(false);
-        if (offset > 60) onDelete(trip.id);
-        setOffset(0);
-    };
+    const handleTouchStart = (e) => { startX.current = e.touches[0].clientX; setSwiping(true); };
+    const handleTouchMove = (e) => { if (!swiping) return; const d = startX.current - e.touches[0].clientX; if (d > 0) setOffset(Math.min(d, 100)); };
+    const handleTouchEnd = () => { setSwiping(false); if (offset > 60) onDelete(trip.id); setOffset(0); };
 
     const stopCount = trip.stops?.length || trip.stop_count || 0;
     const lastUsed = trip.last_used
@@ -33,14 +22,11 @@ function SwipeableTripRow({ trip, onDelete, onTap }) {
 
     return (
         <div className="relative overflow-hidden rounded-2xl">
-            {/* Delete backdrop */}
-            <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-6 rounded-2xl">
-                <span className="text-white font-bold">Delete</span>
+            <div className="absolute inset-0 bg-danger flex items-center justify-end pr-6 rounded-2xl">
+                <span className="text-white font-bold text-sm">Delete</span>
             </div>
-
-            {/* Card */}
             <div
-                className="relative bg-card border border-chalk-200 rounded-2xl p-4 cursor-pointer card-hover transition-transform"
+                className="relative card card-accent p-4 cursor-pointer transition-transform"
                 style={{ transform: `translateX(-${offset}px)` }}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
@@ -50,19 +36,23 @@ function SwipeableTripRow({ trip, onDelete, onTap }) {
                 tabIndex={0}
             >
                 <div className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                        <h3 className="text-lg font-bold text-body truncate">{trip.name}</h3>
-                        <div className="flex items-center gap-2 text-sm text-chalk-500 mt-1">
-                            <span className="flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-bus-400 inline-block" />
-                                {stopCount} stop{stopCount !== 1 ? 's' : ''}
-                            </span>
-                            {lastUsed && <span className="text-chalk-300">• {lastUsed}</span>}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {/* Route dots */}
+                        <div className="flex flex-col items-center gap-0.5 shrink-0">
+                            <span className="w-2 h-2 rounded-full bg-accent" />
+                            <span className="w-px h-2 bg-border-hl" />
+                            <span className="w-2 h-2 rounded-full border border-accent bg-transparent" />
+                        </div>
+                        <div className="min-w-0">
+                            <h3 className="text-base font-bold text-text-primary truncate">{trip.name}</h3>
+                            <div className="flex items-center gap-2 text-xs text-text-muted mt-0.5">
+                                <span className="font-mono">{stopCount} stops</span>
+                                {lastUsed && <span>• {lastUsed}</span>}
+                            </div>
                         </div>
                     </div>
-
                     {trip.similarity !== undefined && (
-                        <span className="shrink-0 ml-3 px-3 py-1 rounded-full bg-bus-100 text-bus-800 text-sm font-bold border border-bus-200">
+                        <span className="shrink-0 ml-2 px-2.5 py-1 rounded-full bg-accent/10 text-accent text-xs font-bold font-mono border border-accent/30">
                             {Math.round(trip.similarity * 100)}%
                         </span>
                     )}
@@ -82,69 +72,47 @@ export default function TripsScreen() {
     const displayTrips = isSearching ? searchResults : trips;
 
     return (
-        <div className="min-h-full">
-            {/* Header */}
-            <div className="bus-stripe px-5 pt-6 pb-4">
-                <h1 className="text-2xl font-extrabold text-bus-900">My Trips</h1>
+        <div className="min-h-full px-4 pt-6 pb-4">
+            <h1 className="text-2xl font-extrabold text-text-primary mb-1">My Trips</h1>
+            <div className="accent-line mb-5" />
+
+            <div className="mb-4"><SemanticSearchBar /></div>
+
+            {error && (
+                <div className="card p-4 mb-4 border-danger/30 animate-fade-up">
+                    <p className="text-danger text-sm">⚠ {error}</p>
+                    <button onClick={clearError} className="text-sm text-accent mt-1 underline min-h-touch">Dismiss</button>
+                </div>
+            )}
+
+            {loading && displayTrips.length === 0 && (
+                <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="skeleton rounded-2xl h-20" />)}</div>
+            )}
+
+            {!loading && displayTrips.length === 0 && (
+                <div className="text-center py-16 animate-fade-up">
+                    <div className="w-14 h-14 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-4">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2"><circle cx="12" cy="10" r="3" /><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z" /></svg>
+                    </div>
+                    <p className="text-text-secondary">{isSearching ? 'No trips match your search' : 'No saved trips yet'}</p>
+                </div>
+            )}
+
+            {isSearching && displayTrips.length > 0 && (
+                <p className="text-xs text-text-muted mb-2 font-mono">{displayTrips.length} result{displayTrips.length !== 1 ? 's' : ''}</p>
+            )}
+
+            <div className="space-y-3">
+                {displayTrips.map((trip, i) => (
+                    <div key={trip.id} className="animate-fade-up" style={{ animationDelay: `${i * 40}ms` }}>
+                        <TripRow trip={trip} onDelete={(id) => removeTrip(id)} onTap={(id) => navigate(`/trips/${id}`)} />
+                    </div>
+                ))}
             </div>
 
-            <div className="px-4 pt-4 pb-4">
-                <div className="mb-4">
-                    <SemanticSearchBar />
-                </div>
-
-                {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4 animate-fade-in">
-                        <p className="text-danger text-sm">⚠️ {error}</p>
-                        <button onClick={clearError} className="text-sm text-bus-700 mt-1 underline min-h-touch">
-                            Dismiss
-                        </button>
-                    </div>
-                )}
-
-                {loading && displayTrips.length === 0 && (
-                    <div className="flex flex-col gap-3">
-                        {[1, 2, 3].map((i) => (
-                            <div key={i} className="skeleton rounded-2xl h-20" />
-                        ))}
-                    </div>
-                )}
-
-                {!loading && displayTrips.length === 0 && (
-                    <div className="text-center py-16 animate-fade-in">
-                        <div className="w-16 h-16 rounded-full bg-bus-100 flex items-center justify-center mx-auto mb-4">
-                            <span className="text-3xl">📭</span>
-                        </div>
-                        <p className="text-chalk-500 text-lg">
-                            {isSearching ? 'No trips match your search' : 'No saved trips yet'}
-                        </p>
-                    </div>
-                )}
-
-                {isSearching && displayTrips.length > 0 && (
-                    <p className="text-sm text-chalk-400 mb-2">
-                        {displayTrips.length} result{displayTrips.length !== 1 ? 's' : ''} found
-                    </p>
-                )}
-
-                <div className="flex flex-col gap-3">
-                    {displayTrips.map((trip, idx) => (
-                        <div key={trip.id} className="animate-fade-in" style={{ animationDelay: `${idx * 40}ms` }}>
-                            <SwipeableTripRow
-                                trip={trip}
-                                onDelete={(id) => removeTrip(id)}
-                                onTap={(id) => navigate(`/trips/${id}`)}
-                            />
-                        </div>
-                    ))}
-                </div>
-
-                {!isSearching && trips.length > 0 && (
-                    <p className="text-center text-xs text-chalk-400 mt-6">
-                        ← Swipe left on a trip to delete
-                    </p>
-                )}
-            </div>
+            {!isSearching && trips.length > 0 && (
+                <p className="text-center text-xs text-text-muted mt-6">← Swipe left to delete</p>
+            )}
         </div>
     );
 }

@@ -1,36 +1,29 @@
 /**
- * MessageBubble.jsx — Themed chat bubbles.
- * User: warm amber, right-aligned. Agent: ivory, left-aligned.
+ * MessageBubble.jsx — Dark enterprise chat bubbles.
+ * User: elevated surface with amber border. AI: surface with amber left border.
  */
 export default function MessageBubble({ role, content, timestamp }) {
     const isUser = role === 'user';
 
     return (
-        <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3 animate-fade-in`}>
-            {/* Agent avatar */}
+        <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3 animate-fade-up`}>
+            {/* AI avatar */}
             {!isUser && (
-                <div className="w-8 h-8 rounded-full bg-bus-100 flex items-center justify-center mr-2 mt-1 shrink-0">
-                    <span className="text-sm">🚌</span>
+                <div className="w-7 h-7 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center mr-2 mt-1 shrink-0">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2"><circle cx="12" cy="10" r="3" /><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z" /></svg>
                 </div>
             )}
 
-            <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 ${isUser
-                        ? 'bg-bus-500 text-bus-900 rounded-br-md'
-                        : 'bg-chalk-100 text-body rounded-bl-md border border-chalk-200'
-                    }`}
-            >
-                <p className="text-base whitespace-pre-wrap break-words leading-relaxed">
+            <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${isUser
+                    ? 'bg-elevated border border-accent/30 rounded-br-md'
+                    : 'bg-surface border-l-2 border-l-accent border border-border rounded-bl-md'
+                }`}>
+                <p className="text-base text-text-primary whitespace-pre-wrap break-words leading-relaxed">
                     {content}
                 </p>
-
                 {timestamp && (
-                    <p className={`text-xs mt-1 ${isUser ? 'text-bus-700' : 'text-chalk-400'
-                        }`}>
-                        {new Date(timestamp).toLocaleTimeString(undefined, {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                        })}
+                    <p className={`text-[11px] mt-1.5 font-mono ${isUser ? 'text-text-muted' : 'text-text-muted'}`}>
+                        {new Date(timestamp).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
                     </p>
                 )}
             </div>
