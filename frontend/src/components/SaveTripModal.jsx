@@ -28,7 +28,10 @@ export default function SaveTripModal({ stops, onClose, onSaved }) {
             <div className="bg-surface border border-border rounded-2xl w-full max-w-md shadow-card-lg animate-slide-up overflow-hidden">
                 <div className="h-1 bg-accent" />
                 <div className="p-6">
-                    <h2 className="text-xl font-bold text-text-primary mb-4">Save This Trip</h2>
+                    <div className="flex items-center gap-3 mb-4">
+                        <img src="/logo.png" alt="RouteEasy" className="h-8 w-auto" />
+                        <h2 className="text-xl font-bold text-text-primary">Save This Trip</h2>
+                    </div>
 
                     <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">Trip Name</label>
                     <input type="text" value={name} onChange={(e) => setName(e.target.value)}

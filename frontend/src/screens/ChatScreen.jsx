@@ -32,9 +32,7 @@ export default function ChatScreen() {
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border glass-bar">
                 <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                    </div>
+                    <img src="/logo.png" alt="RouteEasy" className="h-8 w-auto" />
                     <h1 className="text-lg font-bold text-text-primary">Route Assistant</h1>
                 </div>
                 {messages.length > 0 && (

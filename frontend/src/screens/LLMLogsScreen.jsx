@@ -29,6 +29,7 @@ export default function LLMLogsScreen() {
 
     return (
         <div className="min-h-full px-4 pt-6 pb-4">
+            <img src="/logo.png" alt="RouteEasy" className="h-8 w-auto mb-4" />
             <div className="flex items-center justify-between mb-1">
                 <h1 className="text-2xl font-extrabold text-text-primary">LLM Logs</h1>
                 <span className="text-xs text-text-muted font-mono bg-elevated px-2 py-1 rounded border border-border">LLMOps</span>

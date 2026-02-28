@@ -2,23 +2,69 @@
  * VoiceInputButton.jsx — Dark enterprise voice input.
  */
 import { useState, useRef } from 'react';
+import { transcribeVoice } from '../api/client';
 
-export default function VoiceInputButton({ onTranscript, disabled = false }) {
+export default function VoiceInputButton({ onTranscript, disabled = false, onTranscribing }) {
     const [recording, setRecording] = useState(false);
-    const recognitionRef = useRef(null);
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return null;
+    const mediaRecorderRef = useRef(null);
+    const audioChunksRef = useRef([]);
 
-    const handleToggle = () => {
-        if (recording) { recognitionRef.current?.stop(); setRecording(false); return; }
-        const r = new SpeechRecognition();
-        r.continuous = false; r.interimResults = false; r.lang = 'en-US';
-        r.onresult = (e) => { onTranscript(e.results[0][0].transcript); setRecording(false); };
-        r.onerror = () => setRecording(false);
-        r.onend = () => setRecording(false);
-        recognitionRef.current = r;
-        r.start();
-        setRecording(true);
+    const handleToggle = async () => {
+        if (recording) {
+            // Stop recording
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+                mediaRecorderRef.current.stop();
+            }
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            // Prefer mp4 for iOS, webm for others (MediaRecorder determines support)
+            let mimeType = 'audio/mp4';
+            if (MediaRecorder.isTypeSupported('audio/webm')) {
+                mimeType = 'audio/webm';
+            }
+
+            const mediaRecorder = new MediaRecorder(stream, { mimeType });
+            mediaRecorderRef.current = mediaRecorder;
+            audioChunksRef.current = [];
+
+            mediaRecorder.addEventListener('dataavailable', (event) => {
+                if (event.data.size > 0) {
+                    audioChunksRef.current.push(event.data);
+                }
+            });
+
+            mediaRecorder.addEventListener('stop', async () => {
+                setRecording(false);
+                if (onTranscribing) onTranscribing(true);
+
+                const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+
+                // Stop microphone tracks completely
+                stream.getTracks().forEach(track => track.stop());
+
+                try {
+                    const result = await transcribeVoice(audioBlob);
+                    if (result && result.text) {
+                        onTranscript(result.text + " ");
+                    }
+                } catch (error) {
+                    console.error("Transcription failed", error);
+                    alert("Couldn't hear that, please try again.");
+                } finally {
+                    if (onTranscribing) onTranscribing(false);
+                }
+            });
+
+            mediaRecorder.start();
+            setRecording(true);
+        } catch (err) {
+            console.error('Microphone error:', err);
+            alert("Microphone access is required for voice input.");
+        }
     };
 
     return (

@@ -73,15 +73,48 @@ const useChatStore = create((set, get) => ({
                 }
             }
 
-            // Parse message text for numbered stop lists (e.g. "1. ", "2. ", "3. ")
-            const numberedLines = (finalReply.match(/(?:^\s*\d+\.)|(?:^\d+\.)/gm) || []).length;
-            const hasNumberedList = numberedLines >= 3;
+            // Parse message text for numbered stop lists (e.g. "1. Label - Address")
+            const lines = finalReply.split('\n');
+            const parsedStops = [];
+
+            lines.forEach((line) => {
+                const match = line.match(/^\s*\d+\.\s+(.+)$/);
+                if (match) {
+                    const text = match[1];
+                    const dashIdx = text.indexOf('-');
+                    let label = text.trim();
+                    let resolved = text.trim();
+                    if (dashIdx !== -1) {
+                        label = text.substring(0, dashIdx).trim();
+                        resolved = text.substring(dashIdx + 1).trim();
+                    }
+                    parsedStops.push({ label, resolved });
+                }
+            });
 
             let messageStops = null;
-            if (response.stops && response.stops.length > 0) {
-                messageStops = response.stops; // Prefer fresh backend stops
-            } else if (hasNumberedList) {
-                messageStops = get().lastRoute?.stops || null; // Fallback to last known route
+            if (parsedStops.length >= 2) {
+                // Recover lat/lng manually by cross-referencing known coordinates
+                const allKnownStops = [...(response.stops || []), ...(get().lastRoute?.stops || [])];
+
+                messageStops = parsedStops.map((ps, idx) => {
+                    const known = allKnownStops.find(ks =>
+                        (ks.label && ps.label && ks.label.toLowerCase().includes(ps.label.toLowerCase())) ||
+                        (ks.resolved && ps.resolved && ks.resolved.toLowerCase().includes(ps.resolved.toLowerCase())) ||
+                        (ps.label && ks.label && ps.label.toLowerCase().includes(ks.label.toLowerCase()))
+                    );
+
+                    return {
+                        label: ps.label,
+                        resolved: ps.resolved,
+                        lat: known ? known.lat : 40.7128,
+                        lng: known ? known.lng : -74.0060,
+                        note: null,
+                        position: idx
+                    };
+                });
+            } else if (response.stops && response.stops.length >= 2) {
+                messageStops = response.stops;
             }
 
             const asstMsg = _addMessage('assistant', finalReply, messageStops);

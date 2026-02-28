@@ -32,6 +32,7 @@ export default function HomeScreen() {
         <div className="min-h-full px-4 pt-8 pb-4">
             {/* Greeting */}
             <div className="mb-8 animate-fade-up">
+                <img src="/logo.png" alt="RouteEasy" className="h-10 w-auto mb-4" />
                 <p className="text-text-secondary text-sm font-medium tracking-wide uppercase mb-1">RouteEasy</p>
                 <h1 className="text-3xl font-extrabold text-text-primary">Ready to Roll</h1>
                 <div className="accent-line mt-3" />

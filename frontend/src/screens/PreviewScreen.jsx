@@ -36,7 +36,8 @@ export default function PreviewScreen() {
     return (
         <div className="min-h-full pb-6">
             {/* Header */}
-            <div className="px-4 pt-4 pb-3 border-b border-border glass-bar">
+            <div className="px-4 pt-4 pb-3 border-b border-border glass-bar flex items-center justify-between">
+                <img src="/logo.png" alt="RouteEasy" className="h-8 w-auto" />
                 <button onClick={() => navigate(-1)} className="min-h-touch flex items-center gap-1 text-accent font-semibold text-sm">
                     ← Back
                 </button>

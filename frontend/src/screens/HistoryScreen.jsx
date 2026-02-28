@@ -30,6 +30,7 @@ export default function HistoryScreen() {
 
     return (
         <div className="min-h-full px-4 pt-6 pb-4">
+            <img src="/logo.png" alt="RouteEasy" className="h-8 w-auto mb-4" />
             <h1 className="text-2xl font-extrabold text-text-primary mb-1">History</h1>
             <div className="accent-line mb-6" />
 

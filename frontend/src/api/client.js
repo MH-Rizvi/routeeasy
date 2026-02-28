@@ -121,4 +121,25 @@ export const getLLMLogs = async () => {
     return data;
 };
 
+// ─────────────────────────────────────────────
+// Voice
+// ─────────────────────────────────────────────
+
+/**
+ * Transcribe recorded audio blob using Groq Whisper.
+ * @param {Blob} audioBlob
+ * @returns {Promise<Object>} — { text: "transcription" }
+ */
+export const transcribeVoice = async (audioBlob) => {
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'recording.mp4');
+
+    const { data } = await api.post('/voice/transcribe', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return data;
+};
+
 export default api;

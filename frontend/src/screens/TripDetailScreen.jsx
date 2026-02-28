@@ -65,7 +65,8 @@ export default function TripDetailScreen() {
 
     return (
         <div className="min-h-full pb-6">
-            <div className="px-4 pt-4 pb-3 border-b border-border glass-bar">
+            <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-border glass-bar">
+                <img src="/logo.png" alt="RouteEasy" className="h-8 w-auto" />
                 <button onClick={() => navigate(-1)} className="min-h-touch flex items-center gap-1 text-accent font-semibold text-sm">← Back</button>
             </div>
 
