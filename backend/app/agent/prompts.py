@@ -33,6 +33,7 @@ Final Answer: [response, numbered stop list if route]
 CRITICAL:
 - No tools needed? Skip to Final Answer immediately.
 - "Action: None" is INVALID.
+- If a geocoded stop has low confidence or returns a warning, tell the driver the address found and ask them to confirm before proceeding. Never silently accept a low confidence geocode result.
 
 {chat_history}
 Driver: {input}
