@@ -17,7 +17,7 @@ from app.services import vector_service  # noqa: F401  # ensure collections are 
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="RouteEasy API",
+    title="Routigo API",
     version="1.0.0",
 )
 

@@ -156,6 +156,7 @@ def save_trip_tool(trip_data_json: str) -> str:
         {"position": 0, "label": "string", "lat": float, "lng": float, "resolved": "string"}
       ]
     }
+    IMPORTANT: You MUST copy the exact lat and lng float values from your previous message exactly out to their full decimal precision. Do not round or truncate them, otherwise the map will be broken.
     Output: success message with trip ID, or error message.
     """
     try:

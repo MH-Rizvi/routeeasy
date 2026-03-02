@@ -237,10 +237,12 @@ async def _run_agent_internal(
             # updated route whereas intermediate tools only reflect newly added stops this turn.
             stops = stops_reply if len(stops_reply) >= len(stops_tools) else stops_tools
 
-            # Strip coordinates from the reply text so the user doesn't see them
-            clean_reply = _hide_coordinates_from_reply(reply)
+            # We no longer strip coordinates from the reply text here!
+            # If we strip them here, the frontend won't save them in conversation history,
+            # which forces the LLM to hallucinate missing lat/lng coordinates to save_trip_tool in the next turn!
+            # Hiding the coordinates is now handled purely visually in frontend MessageBubble.jsx.
 
-            response: Dict[str, Any] = {"reply": clean_reply}
+            response: Dict[str, Any] = {"reply": reply}
             if stops:
                 response["stops"] = stops
                 response["needs_confirmation"] = True
