@@ -10,9 +10,22 @@ from langchain.callbacks.base import BaseCallbackHandler  # pyright: ignore[repo
 from app.config import settings
 from app.database import SessionLocal
 from app import models
-
+from app.agent.tools import user_id_ctx, user_city_ctx
 
 logger = logging.getLogger(__name__)
+
+class ContextCallbackHandler(BaseCallbackHandler):
+    """Sets context variables at the start of an LLM chain so tools can read them."""
+    
+    def __init__(self, user_id: int | None, user_city: str | None, db: Any | None):
+        super().__init__()
+        self.user_id = user_id
+        self.user_city = user_city
+        self.db = db
+
+    def on_chain_start(self, serialized: Dict[str, Any], inputs: Dict[str, Any], **kwargs: Any) -> None:
+        user_id_ctx.set(self.user_id)
+        user_city_ctx.set(self.user_city)
 
 
 class LLMOpsCallbackHandler(BaseCallbackHandler):
@@ -54,6 +67,10 @@ class LLMOpsCallbackHandler(BaseCallbackHandler):
         output_tokens = usage.get("output_tokens")
 
         db = SessionLocal()
+        
+        # Get user_id from the context set by ContextCallbackHandler
+        user_id = getattr(user_id_ctx, "get", lambda: lambda: None)().get() if hasattr(user_id_ctx, "get") else None
+        
         try:
             log = models.LLMLog(
                 model="llama-3.3-70b-versatile",
@@ -64,6 +81,7 @@ class LLMOpsCallbackHandler(BaseCallbackHandler):
                 success=True,
                 error_message=None,
                 run_id=run_id or None,
+                user_id=user_id,
             )
             db.add(log)
             db.commit()
@@ -79,6 +97,10 @@ class LLMOpsCallbackHandler(BaseCallbackHandler):
         **kwargs: Any,
     ) -> None:
         db = SessionLocal()
+        
+        # Get user_id from the context set by ContextCallbackHandler
+        user_id = getattr(user_id_ctx, "get", lambda: lambda: None)().get() if hasattr(user_id_ctx, "get") else None
+        
         try:
             log = models.LLMLog(
                 model="llama-3.3-70b-versatile",
@@ -89,6 +111,7 @@ class LLMOpsCallbackHandler(BaseCallbackHandler):
                 success=False,
                 error_message=str(error),
                 run_id=str(kwargs.get("run_id", "")) or None,
+                user_id=user_id,
             )
             db.add(log)
             db.commit()

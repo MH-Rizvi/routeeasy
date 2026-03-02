@@ -8,7 +8,7 @@ from typing import Any, Dict
 from app.config import settings
 from app.database import SessionLocal
 from app import models
-from app.services.vector_service import history_collection, embed
+from app.services.vector_service import _get_history_collection, embed
 from app.services.groq_client import groq_rotator
 
 
@@ -21,7 +21,7 @@ If the answer is missing, say so. Be extremely brief, max 1 sentence.
 """.strip()
 
 
-async def answer_history_question(question: str) -> Dict[str, Any]:
+async def answer_history_question(question: str, user_id: int) -> Dict[str, Any]:
     """
     Full RAG pipeline:
     1. Embed the question with the same model used for trip history.
@@ -35,7 +35,8 @@ async def answer_history_question(question: str) -> Dict[str, Any]:
     question_embedding = embed(question)
 
     # Step 2: Retrieve top-k relevant history entries from ChromaDB
-    results = history_collection.query(
+    collection = _get_history_collection(user_id)
+    results = collection.query(
         query_embeddings=[question_embedding],
         n_results=3,
     )
@@ -95,6 +96,7 @@ async def answer_history_question(question: str) -> Dict[str, Any]:
             success=success,
             error_message=error_message,
             run_id=None,
+            user_id=user_id,
         )
         db.add(log)
         db.commit()

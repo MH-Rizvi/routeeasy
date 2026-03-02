@@ -7,8 +7,9 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status  # pyright: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # pyright: ignore[reportMissingImports]
 
-from app import schemas
+from app import models, schemas
 from app.agent import core as agent_service
+from app.auth import get_current_user
 from app.database import get_db
 from app.services import moderation_service
 
@@ -21,6 +22,7 @@ router = APIRouter(tags=["agent"])
 async def chat(
     request: schemas.AgentChatRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> schemas.AgentChatResponse:
     is_safe = await moderation_service.is_safe(request.message)
     if not is_safe:
@@ -30,10 +32,13 @@ async def chat(
         )
 
     try:
+        user_city = current_user.profile.full_location if current_user.profile else ""
         result: dict[str, Any] = await agent_service.run_agent(
             request.message,
             request.conversation_history,  # pyright: ignore[reportArgumentType]
             db,
+            user_id=current_user.id,
+            user_city=user_city,
         )
         return schemas.AgentChatResponse(**result)
     except Exception as exc:

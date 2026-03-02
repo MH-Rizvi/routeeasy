@@ -7,12 +7,18 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
+import contextvars
+
 from langchain.tools import tool  # pyright: ignore[reportMissingImports]
 
 from app.database import SessionLocal  # pyright: ignore[reportMissingImports]
 from app import models, schemas
 from app.services import geocoding_service, vector_service
 from app.services import trips_service
+
+# Context variables for injecting request-scoped data into tools
+user_id_ctx: contextvars.ContextVar[int | None] = contextvars.ContextVar("user_id", default=None)
+user_city_ctx: contextvars.ContextVar[str | None] = contextvars.ContextVar("user_city", default=None)
 
 
 logger = logging.getLogger(__name__)
@@ -42,7 +48,8 @@ def geocode_stop_tool(query: str) -> Dict[str, Any]:
     Input: free-text description of a stop.
     Output: { success, lat, lng, formatted_address, error }.
     """
-    result = _run_async(geocoding_service.geocode(query))
+    user_city = user_city_ctx.get() or "Hicksville, NY"
+    result = _run_async(geocoding_service.geocode(query, user_city=user_city))
     if not result.get("success"):
         return {"error": result.get("error", "This stop could not be found. Please ask the driver for a better description of this specific stop only.")}
     if result.get("success") and result.get("confidence") == "low":
@@ -58,7 +65,10 @@ def search_saved_stops_tool(query: str) -> List[Dict[str, Any]]:
     Input: description of the stop (string).
     Output: list of similar saved stops with similarity scores.
     """
-    return vector_service.search_stops(query, top_k=3)
+    user_id = user_id_ctx.get()
+    if not user_id:
+        return []
+    return vector_service.search_stops(query, user_id, top_k=3)
 
 
 @tool("search_saved_trips")
@@ -69,7 +79,10 @@ def search_saved_trips_tool(query: str) -> List[Dict[str, Any]]:
     Input: description of the trip (string).
     Output: list of similar saved trips with similarity scores.
     """
-    return vector_service.search_trips(query, top_k=3)
+    user_id = user_id_ctx.get()
+    if not user_id:
+        return []
+    return vector_service.search_trips(query, user_id, top_k=3)
 
 
 @tool("get_trip_by_id")
@@ -86,9 +99,13 @@ def get_trip_by_id_tool(trip_id_str: str) -> Dict[str, Any]:
         return {"error": "trip_id must be an integer string."}
 
     async def _fetch():
+        user_id = user_id_ctx.get()
+        if not user_id:
+            return {"error": "Authentication required."}
+            
         db = SessionLocal()
         try:
-            trip = await trips_service.get_trip(db, trip_id)
+            trip = await trips_service.get_trip(db, trip_id, user_id=user_id)
             if not trip:
                 return {"error": f"Trip with id {trip_id} not found."}
             stops = [
@@ -125,10 +142,15 @@ def get_recent_history_tool(days_str: str = "7") -> List[Dict[str, Any]]:
 
     cutoff = datetime.utcnow() - timedelta(days=days)
 
+    user_id = user_id_ctx.get()
+    if not user_id:
+        return []
+
     db = SessionLocal()
     try:
         histories: List[models.TripHistory] = (
             db.query(models.TripHistory)
+            .filter(models.TripHistory.user_id == user_id)
             .filter(models.TripHistory.launched_at >= cutoff)
             .order_by(models.TripHistory.launched_at.desc())
             .all()
@@ -168,9 +190,13 @@ def save_trip_tool(trip_data_json: str) -> str:
         return f"Error parsing input. Ensure you pass a valid JSON string. Detail: {str(e)}"
     
     async def _save():
+        user_id = user_id_ctx.get()
+        if not user_id:
+            return "Authentication required to save trips."
+            
         db = SessionLocal()
         try:
-            trip = await trips_service.create_trip(db, trip_in)
+            trip = await trips_service.create_trip(db, trip_in, user_id)
             return f"Successfully saved trip '{trip.name}' with ID {trip.id}"
         except Exception as e:
             return f"Database error while saving trip: {str(e)}"

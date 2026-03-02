@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status  
 from sqlalchemy.orm import Session  # pyright: ignore[reportMissingImports]
 
 from app import models, schemas
+from app.auth import get_current_user
 from app.database import get_db
 from app.services import trips_service, vector_service
 
@@ -20,9 +21,10 @@ router = APIRouter(tags=["trips"])
 async def search_trips(
     q: str = Query(..., min_length=1, description="Semantic search query"),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> schemas.TripsSearchResponse:
     """Semantic search over saved trips using ChromaDB vector similarity."""
-    results = vector_service.search_trips(q, top_k=10)
+    results = vector_service.search_trips(q, current_user.id, top_k=10)
 
     # Enrich with SQLite data (stop_count, etc.) and build response
     search_results: List[schemas.TripSearchResult] = []
@@ -46,14 +48,21 @@ async def search_trips(
 # ── CRUD ────────────────────────────────────────────────────────────────────────
 
 @router.get("/trips", response_model=List[schemas.Trip])
-async def list_trips(db: Session = Depends(get_db)) -> List[schemas.Trip]:
-    trips = await trips_service.list_trips(db)
+async def list_trips(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> List[schemas.Trip]:
+    trips = await trips_service.list_trips(db, current_user.id)
     return trips  # pyright: ignore[reportReturnType]
 
 
 @router.get("/trips/{trip_id}", response_model=schemas.Trip)
-async def get_trip(trip_id: int, db: Session = Depends(get_db)) -> schemas.Trip:
-    trip = await trips_service.get_trip(db, trip_id)
+async def get_trip(
+    trip_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> schemas.Trip:
+    trip = await trips_service.get_trip(db, trip_id, current_user.id)
     if not trip:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -66,8 +75,9 @@ async def get_trip(trip_id: int, db: Session = Depends(get_db)) -> schemas.Trip:
 async def create_trip(
     trip_data: schemas.TripCreate,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> schemas.Trip:
-    trip = await trips_service.create_trip(db, trip_data)
+    trip = await trips_service.create_trip(db, trip_data, current_user.id)
     return trip
 
 
@@ -76,8 +86,9 @@ async def update_trip(
     trip_id: int,
     trip_data: schemas.TripUpdate,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> schemas.Trip:
-    trip = await trips_service.update_trip(db, trip_id, trip_data)
+    trip = await trips_service.update_trip(db, trip_id, trip_data, current_user.id)
     if not trip:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -87,8 +98,12 @@ async def update_trip(
 
 
 @router.delete("/trips/{trip_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_trip(trip_id: int, db: Session = Depends(get_db)) -> Response:
-    success = await trips_service.delete_trip(db, trip_id)
+async def delete_trip(
+    trip_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> Response:
+    success = await trips_service.delete_trip(db, trip_id, current_user.id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -98,8 +113,12 @@ async def delete_trip(trip_id: int, db: Session = Depends(get_db)) -> Response:
 
 
 @router.post("/trips/{trip_id}/launch", response_model=schemas.TripHistory)
-async def launch_trip(trip_id: int, db: Session = Depends(get_db)) -> schemas.TripHistory:
-    history = await trips_service.launch_trip(db, trip_id)
+async def launch_trip(
+    trip_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> schemas.TripHistory:
+    history = await trips_service.launch_trip(db, trip_id, current_user.id)
     if not history:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

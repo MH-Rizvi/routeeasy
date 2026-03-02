@@ -15,7 +15,7 @@ from app.services import vector_service
 logger = logging.getLogger(__name__)
 
 
-async def create_trip(db: Session, trip_data: schemas.TripCreate) -> models.Trip:
+async def create_trip(db: Session, trip_data: schemas.TripCreate, user_id: int) -> models.Trip:
     """
     Create a new trip with stops.
 
@@ -23,7 +23,7 @@ async def create_trip(db: Session, trip_data: schemas.TripCreate) -> models.Trip
     2. Write each stop to ChromaDB and store chroma_id on the Stop.
     3. Write trip to ChromaDB and store chroma_id on the Trip.
     """
-    db_trip = models.Trip(name=trip_data.name, notes=trip_data.notes)
+    db_trip = models.Trip(name=trip_data.name, notes=trip_data.notes, user_id=user_id)
     db.add(db_trip)
     db.flush()  # Get trip ID before creating stops
 
@@ -38,6 +38,7 @@ async def create_trip(db: Session, trip_data: schemas.TripCreate) -> models.Trip
             lat=stop_data.lat,
             lng=stop_data.lng,
             note=stop_data.note,
+            user_id=user_id,
         )
         db.add(db_stop)
         db.flush()
@@ -50,6 +51,7 @@ async def create_trip(db: Session, trip_data: schemas.TripCreate) -> models.Trip
             resolved=db_stop.resolved,
             lat=db_stop.lat,
             lng=db_stop.lng,
+            user_id=user_id,
         )
         db_stop.chroma_id = chroma_id
 
@@ -68,6 +70,7 @@ async def create_trip(db: Session, trip_data: schemas.TripCreate) -> models.Trip
         trip_id=db_trip.id,
         name=db_trip.name,
         stops=stops_payload,
+        user_id=user_id,
     )
     db_trip.chroma_id = trip_chroma_id
 
@@ -76,24 +79,25 @@ async def create_trip(db: Session, trip_data: schemas.TripCreate) -> models.Trip
     return db_trip
 
 
-async def get_trip(db: Session, trip_id: int) -> Optional[models.Trip]:
+async def get_trip(db: Session, trip_id: int, user_id: int) -> Optional[models.Trip]:
     """Fetch a single trip with all stops."""
     trip = (
         db.query(models.Trip)
         .filter(models.Trip.id == trip_id)
+        .filter(models.Trip.user_id == user_id)
         .first()
     )
     return trip
 
 
-async def list_trips(db: Session) -> List[models.Trip]:
+async def list_trips(db: Session, user_id: int) -> List[models.Trip]:
     """Return all saved trips."""
-    trips = db.query(models.Trip).order_by(models.Trip.created_at.desc()).all()
+    trips = db.query(models.Trip).filter(models.Trip.user_id == user_id).order_by(models.Trip.created_at.desc()).all()
     return trips
 
 
 async def update_trip(
-    db: Session, trip_id: int, trip_data: schemas.TripUpdate
+    db: Session, trip_id: int, trip_data: schemas.TripUpdate, user_id: int
 ) -> Optional[models.Trip]:
     """
     Update a trip's name, notes, and optionally replace its stops.
@@ -104,7 +108,7 @@ async def update_trip(
     3. Insert new stops to SQLite + ChromaDB.
     4. Update the trip document in ChromaDB with the new stop labels.
     """
-    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).filter(models.Trip.user_id == user_id).first()
     if not trip:
         return None
 
@@ -120,7 +124,7 @@ async def update_trip(
         for stop in trip.stops:
             if stop.chroma_id:
                 try:
-                    vector_service.delete_stop(stop.chroma_id)
+                    vector_service.delete_stop(stop.chroma_id, user_id)
                 except Exception as exc:
                     logger.error("Failed to delete stop chroma_id=%s: %s", stop.chroma_id, exc)
 
@@ -140,6 +144,7 @@ async def update_trip(
                 lat=stop_data.lat,
                 lng=stop_data.lng,
                 note=stop_data.note,
+                user_id=user_id,
             )
             db.add(db_stop)
             db.flush()
@@ -151,6 +156,7 @@ async def update_trip(
                 resolved=db_stop.resolved,
                 lat=db_stop.lat,
                 lng=db_stop.lng,
+                user_id=user_id,
             )
             db_stop.chroma_id = chroma_id
 
@@ -159,20 +165,21 @@ async def update_trip(
         # Update the trip document in ChromaDB
         if trip.chroma_id:
             try:
-                vector_service.delete_trip(trip.chroma_id)
+                vector_service.delete_trip(trip.chroma_id, user_id)
             except Exception:
                 pass
         trip_chroma_id = vector_service.add_trip(
             trip_id=trip.id,
             name=trip.name,
             stops=stops_payload,
+            user_id=user_id,
         )
         trip.chroma_id = trip_chroma_id
     else:
         # Even if only name changed, update the ChromaDB trip document
         if trip.chroma_id and trip_data.name is not None:
             try:
-                vector_service.delete_trip(trip.chroma_id)
+                vector_service.delete_trip(trip.chroma_id, user_id)
             except Exception:
                 pass
             stops_payload = [{"label": s.label} for s in trip.stops]
@@ -180,6 +187,7 @@ async def update_trip(
                 trip_id=trip.id,
                 name=trip.name,
                 stops=stops_payload,
+                user_id=user_id,
             )
             trip.chroma_id = trip_chroma_id
 
@@ -188,7 +196,7 @@ async def update_trip(
     return trip
 
 
-async def delete_trip(db: Session, trip_id: int) -> bool:
+async def delete_trip(db: Session, trip_id: int, user_id: int) -> bool:
     """
     Delete a trip from SQLite and ChromaDB.
 

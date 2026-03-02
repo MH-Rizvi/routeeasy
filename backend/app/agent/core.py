@@ -178,6 +178,8 @@ async def run_agent(
     message: str,
     conversation_history: List[Dict[str, Any]] | None = None,
     db: Any | None = None,
+    user_id: int | None = None,
+    user_city: str | None = None,
 ) -> Dict[str, Any]:
     global _processing_messages
     msg_hash = hashlib.md5(message.encode("utf-8")).hexdigest()
@@ -190,7 +192,7 @@ async def run_agent(
         
     _processing_messages.add(msg_hash)
     try:
-        return await _run_agent_internal(message, conversation_history, db)
+        return await _run_agent_internal(message, conversation_history, db, user_id, user_city)
     finally:
         _processing_messages.discard(msg_hash)
 
@@ -199,6 +201,8 @@ async def _run_agent_internal(
     message: str,
     conversation_history: List[Dict[str, Any]] | None = None,
     db: Any | None = None,
+    user_id: int | None = None,
+    user_city: str | None = None,
 ) -> Dict[str, Any]:
     """
     Run the LangChain ReAct agent for a single driver message.
@@ -223,7 +227,13 @@ async def _run_agent_internal(
 
     while True:
         try:
-            result = await _agent_executor.ainvoke(invoke_input)
+            from langchain_core.callbacks import Callbacks
+            from app.agent.callbacks import ContextCallbackHandler
+            
+            # Inject user context into the callbacks so tools can access them
+            context_callbacks = Callbacks([ContextCallbackHandler(user_id=user_id, user_city=user_city, db=db)])
+            
+            result = await _agent_executor.ainvoke(invoke_input, config={"callbacks": context_callbacks})
             reply = result.get("output", "")
             intermediate = result.get("intermediate_steps", [])
 

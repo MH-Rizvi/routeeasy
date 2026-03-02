@@ -14,19 +14,20 @@ logger = logging.getLogger(__name__)
 
 GOOGLE_GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json"
 
-DEFAULT_CITY_LAT: float | None = None
-DEFAULT_CITY_LNG: float | None = None
+# Cache city coordinates to avoid redundant Google Maps API calls
+_city_coords_cache: Dict[str, tuple[float | None, float | None]] = {}
 
-async def _get_default_city_coords() -> tuple[float | None, float | None]:
-    global DEFAULT_CITY_LAT, DEFAULT_CITY_LNG
-    if DEFAULT_CITY_LAT is not None and DEFAULT_CITY_LNG is not None:
-        return DEFAULT_CITY_LAT, DEFAULT_CITY_LNG
+async def _get_city_coords(city: str) -> tuple[float | None, float | None]:
+    if not city:
+        return None, None
+    if city in _city_coords_cache:
+        return _city_coords_cache[city]
     
-    if not settings.google_maps_api_key or not settings.default_city:
+    if not settings.google_maps_api_key:
         return None, None
         
     params = {
-        "address": settings.default_city,
+        "address": city,
         "key": settings.google_maps_api_key,
     }
     try:
@@ -37,16 +38,15 @@ async def _get_default_city_coords() -> tuple[float | None, float | None]:
                 if data.get("status") == "OK" and data.get("results"):
                     loc = data["results"][0].get("geometry", {}).get("location", {})
                     if "lat" in loc and "lng" in loc:
-                        DEFAULT_CITY_LAT = float(loc["lat"])
-                        DEFAULT_CITY_LNG = float(loc["lng"])
-                        logger.info("Initialized DEFAULT_CITY_LAT=%s, DEFAULT_CITY_LNG=%s", DEFAULT_CITY_LAT, DEFAULT_CITY_LNG)
+                        _city_coords_cache[city] = (float(loc["lat"]), float(loc["lng"]))
+                        return _city_coords_cache[city]
     except Exception as exc:
-        logger.error("Error geocoding DEFAULT_CITY: %s", exc)
+        logger.error("Error geocoding city '%s': %s", city, exc)
         
-    return DEFAULT_CITY_LAT, DEFAULT_CITY_LNG
+    return None, None
 
 
-async def geocode(query: str) -> Dict[str, Any]:
+async def geocode(query: str, user_city: str) -> Dict[str, Any]:
     """
     Resolve a place/address description to lat/lng using Google Geocoding API.
 
@@ -82,7 +82,7 @@ async def geocode(query: str) -> Dict[str, Any]:
         }
 
     # 1. Init default city coords lazily
-    lat_center, lng_center = await _get_default_city_coords()
+    lat_center, lng_center = await _get_city_coords(user_city)
 
     # Helper function to fire the HTTP request and parse Google's format
     async def _fetch_geocode(search_query: str) -> Dict[str, Any] | None:
@@ -105,13 +105,13 @@ async def geocode(query: str) -> Dict[str, Any]:
         except:
             return None
 
-    # Extract city and state from DEFAULT_CITY
-    default_parts = [p.strip() for p in settings.default_city.split(",")] if settings.default_city else []
+    # Extract city and state from user_city
+    default_parts = [p.strip() for p in user_city.split(",")] if user_city else []
     default_city_name = default_parts[0] if default_parts else ""
     default_state = default_parts[-1] if len(default_parts) > 1 else ""
 
-    # 2. Prepare search query (Always append DEFAULT_CITY)
-    search_query = f"{query.strip()}, {settings.default_city}"
+    # 2. Prepare search query (Always append user_city)
+    search_query = f"{query.strip()}, {user_city}"
 
     # First attempt
     data = await _fetch_geocode(search_query)
@@ -128,8 +128,8 @@ async def geocode(query: str) -> Dict[str, Any]:
         
         if is_missing_state:
             confidence = "low"
-            # Retry with ", {DEFAULT_CITY}" appended if it isn't already there
-            retry_query = f"{query.strip()}, {settings.default_city}"
+            # Retry with ", {user_city}" appended if it isn't already there
+            retry_query = f"{query.strip()}, {user_city}"
             if search_query != retry_query:
                 logger.info("Result '%s' missing state %s. Retrying with '%s'", fmt_addr, default_state, retry_query)
                 data2 = await _fetch_geocode(retry_query)
