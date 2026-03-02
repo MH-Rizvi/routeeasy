@@ -201,7 +201,7 @@ requires-dist = [
     { name = "langchain-community", specifier = ">=0.3.0" },
     { name = "langchain-core", specifier = ">=0.3.0" },
     { name = "langchain-google-genai", specifier = ">=2.1.12" },
-    { name = "langchain-groq", specifier = ">=0.2.0" },
+    { name = "langchain-groq", specifier = "==0.3.1" },
     { name = "langsmith", specifier = ">=0.2.0" },
     { name = "pydantic", specifier = ">=2.7.4" },
     { name = "pydantic-settings", specifier = ">=2.4.0" },
@@ -1224,15 +1224,15 @@ wheels = [
 
 [[package]]
 name = "langchain-groq"
-version = "0.3.3"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "groq" },
     { name = "langchain-core" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4a/ad/ef32ac66fe0f593496ab8913daf65b41e0471649214badeb984d7da2bf8f/langchain_groq-0.3.3.tar.gz", hash = "sha256:12dde7eddc0a83a441e93add64367222e99aaf9c65774b853740d04caa8477d4", size = 22562, upload-time = "2025-06-23T19:02:51.584Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ac/21/fc8f8bded725d339f1c7d358e14806ea95accd96a5bfc54a429717ca6431/langchain_groq-0.3.1.tar.gz", hash = "sha256:38b8455870b20d585a6a79027dd9fac523bd2fea27f9083b430304ef0ddbf1bf", size = 21973, upload-time = "2025-03-20T20:30:01.446Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e6/71/7f0e27465f9c884c316b99500f245aa34d0e72eec70905ee1800a97a98bc/langchain_groq-0.3.3-py3-none-any.whl", hash = "sha256:4ce8557eabf740e0c98000a625fafa3c62a147fc40fb59ab0b64df3c7fa33f0e", size = 15455, upload-time = "2025-06-23T19:02:50.538Z" },
+    { url = "https://files.pythonhosted.org/packages/ca/d8/7166413d50ad06c84a5f59e5fe097cc1c3e05f5aed594d8e42d247b07aa6/langchain_groq-0.3.1-py3-none-any.whl", hash = "sha256:573ccf39bd4ed2820a8cfc07a65cd67abdc83d017a40335269276e486e489697", size = 15219, upload-time = "2025-03-20T20:30:00.225Z" },
 ]
 
 [[package]]

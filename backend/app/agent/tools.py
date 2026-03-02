@@ -98,8 +98,10 @@ def get_trip_by_id_tool(trip_id_str: str) -> Dict[str, Any]:
     except ValueError:
         return {"error": "trip_id must be an integer string."}
 
+    # Capture user_id in sync scope — _run_async may lose contextvars
+    user_id = user_id_ctx.get()
+
     async def _fetch():
-        user_id = user_id_ctx.get()
         if not user_id:
             return {"error": "Authentication required."}
             
@@ -181,6 +183,10 @@ def save_trip_tool(trip_data_json: str) -> str:
     IMPORTANT: You MUST copy the exact lat and lng float values from your previous message exactly out to their full decimal precision. Do not round or truncate them, otherwise the map will be broken.
     Output: success message with trip ID, or error message.
     """
+    # Capture user_id NOW in the sync scope where contextvars are valid.
+    # _run_async may spawn a new thread that loses contextvars.
+    user_id = user_id_ctx.get()
+
     try:
         data = json.loads(trip_data_json)
         # Handle the case where the LLM might hallucinate a `notes` field or others not matching exactly if it isn't strict,
@@ -190,7 +196,6 @@ def save_trip_tool(trip_data_json: str) -> str:
         return f"Error parsing input. Ensure you pass a valid JSON string. Detail: {str(e)}"
     
     async def _save():
-        user_id = user_id_ctx.get()
         if not user_id:
             return "Authentication required to save trips."
             

@@ -9,7 +9,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session  # pyright: ignore[reportMissingImports]
 
 from app import models, schemas
-from app.services import vector_service
+from app.services import vector_service, directions_service
 
 
 logger = logging.getLogger(__name__)
@@ -242,7 +242,7 @@ async def delete_trip(db: Session, trip_id: int, user_id: int) -> bool:
     return True
 
 
-async def launch_trip(db: Session, trip_id: int) -> Optional[models.TripHistory]:
+async def launch_trip(db: Session, trip_id: int, user_id: int) -> Optional[models.TripHistory]:
     """
     Record a trip launch:
 
@@ -253,6 +253,7 @@ async def launch_trip(db: Session, trip_id: int) -> Optional[models.TripHistory]
     trip = (
         db.query(models.Trip)
         .filter(models.Trip.id == trip_id)
+        .filter(models.Trip.user_id == user_id)
         .first()
     )
     if not trip:
@@ -276,6 +277,7 @@ async def launch_trip(db: Session, trip_id: int) -> Optional[models.TripHistory]
     ]
 
     history = models.TripHistory(
+        user_id=user_id,
         trip_id=trip.id,
         trip_name=trip.name,
         raw_input=None,
@@ -299,6 +301,7 @@ async def launch_trip(db: Session, trip_id: int) -> Optional[models.TripHistory]
             trip_name=trip.name,
             stops=stops_snapshot,
             launched_at=launched_at_str,
+            user_id=user_id,
         )
     except Exception as exc:
         logger.error(
@@ -306,6 +309,14 @@ async def launch_trip(db: Session, trip_id: int) -> Optional[models.TripHistory]
             history.id,
             exc,
         )
+
+    # Calculate total miles for the trip and store in history
+    try:
+        total_miles = await directions_service.calculate_route_miles(stops_snapshot)
+        history.total_miles = total_miles
+    except Exception as exc2:
+        logger.error("Failed to calculate total miles for history_id=%s: %s", history.id, exc2)
+        history.total_miles = 0.0
 
     db.commit()
     db.refresh(history)

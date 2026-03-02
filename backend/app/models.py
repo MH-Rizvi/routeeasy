@@ -142,6 +142,7 @@ class TripHistory(Base):
     launched_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.current_timestamp(), nullable=False
     )
+    total_miles: Mapped[float] = mapped_column(Float, nullable=True)
 
     user: Mapped["User"] = relationship("User", back_populates="histories")
     trip: Mapped["Trip | None"] = relationship("Trip", back_populates="histories")

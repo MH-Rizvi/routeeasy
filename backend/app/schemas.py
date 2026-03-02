@@ -142,6 +142,7 @@ class TripHistory(BaseModel):
     raw_input: Optional[str] = None
     stops_json: str
     launched_at: datetime
+    total_miles: Optional[float] = None
 
 
 class HistoryListResponse(BaseModel):

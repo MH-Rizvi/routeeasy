@@ -47,8 +47,6 @@ GROQ_MODELS = [
     "moonshotai/kimi-k2-instruct",
     "meta-llama/llama-4-maverick-17b-128e-instruct",
     "meta-llama/llama-4-scout-17b-16e-instruct",
-    "qwen/qwen3-32b",
-    "groq/compound"
 ]
 _current_model_idx = 0
 
@@ -227,11 +225,11 @@ async def _run_agent_internal(
 
     while True:
         try:
-            from langchain_core.callbacks import Callbacks
+            # Callbacks import removed; using plain list for callbacks
             from app.agent.callbacks import ContextCallbackHandler
             
             # Inject user context into the callbacks so tools can access them
-            context_callbacks = Callbacks([ContextCallbackHandler(user_id=user_id, user_city=user_city, db=db)])
+            context_callbacks = [ContextCallbackHandler(user_id=user_id, user_city=user_city, db=db)]
             
             result = await _agent_executor.ainvoke(invoke_input, config={"callbacks": context_callbacks})
             reply = result.get("output", "")
