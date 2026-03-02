@@ -130,7 +130,7 @@ export default function TripsScreen() {
                 }
             />
 
-            <div className="px-5 mt-6 flex-1">
+            <div className="px-4 sm:px-5 mt-4 sm:mt-6 flex-1 pb-24">
                 <div className="mb-6"><SemanticSearchBar /></div>
 
                 {loading && displayTrips.length === 0 && (

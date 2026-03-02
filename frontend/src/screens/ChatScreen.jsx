@@ -47,7 +47,7 @@ export default function ChatScreen() {
             />
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4 pb-24">
                 {messages.length === 0 && !loading && (
                     <div className="flex flex-col items-center justify-center h-full text-center animate-fade-up">
                         <div className="w-16 h-16 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center mb-5">

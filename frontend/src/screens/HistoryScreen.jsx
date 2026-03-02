@@ -39,7 +39,7 @@ export default function HistoryScreen() {
                 }
             />
 
-            <div className="px-5 mt-5">
+            <div className="px-4 sm:px-5 mt-4 sm:mt-5 pb-24">
 
                 {/* RAG Panel */}
                 <section className="mb-8 animate-fade-up">

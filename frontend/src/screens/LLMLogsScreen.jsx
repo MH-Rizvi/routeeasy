@@ -36,7 +36,7 @@ export default function LLMLogsScreen() {
                 }
             />
 
-            <div className="px-5 mt-5">
+            <div className="px-4 sm:px-5 mt-4 sm:mt-5 pb-24">
 
                 {loading && (
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">

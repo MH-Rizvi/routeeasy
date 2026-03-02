@@ -96,7 +96,7 @@ export default function TripDetailScreen() {
                 }
             />
 
-            <div className="px-5 mt-5 animate-fade-up">
+            <div className="px-4 sm:px-5 mt-4 sm:mt-5 animate-fade-up pb-24">
                 <h1 className="text-2xl font-bold text-text-primary mb-1">{currentTrip.name}</h1>
                 {currentTrip.notes && <p className="text-text-secondary text-sm mb-3">{currentTrip.notes}</p>}
 

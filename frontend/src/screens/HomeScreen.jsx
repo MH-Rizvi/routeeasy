@@ -107,6 +107,9 @@ export default function HomeScreen() {
                         +
                     </button>
                 )}
+
+                {/* Spacer to prevent FAB clipping */}
+                <div className="h-24 sm:h-12 w-full shrink-0" />
             </div>
         </div>
     );

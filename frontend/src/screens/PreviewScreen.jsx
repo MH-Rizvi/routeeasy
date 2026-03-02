@@ -46,7 +46,7 @@ export default function PreviewScreen() {
                 }
             />
 
-            <div className="px-5 mt-5">
+            <div className="px-4 sm:px-5 mt-4 sm:mt-5 pb-24">
 
                 {stops.length === 0 ? (
                     <div className="text-center py-16 animate-fade-up">
