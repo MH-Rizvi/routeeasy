@@ -225,9 +225,17 @@ async def _run_agent_internal(
 
     while True:
         try:
-            # Callbacks import removed; using plain list for callbacks
             from app.agent.callbacks import ContextCallbackHandler
+            from app.agent.tools import user_id_ctx, user_city_ctx
             
+            # Explicitly set contextvars for the current asyncio task.
+            # This ensures deeply nested async executions (like tools) inherit these values natively
+            # independently of LangChain's callback system boundaries.
+            if user_id is not None:
+                user_id_ctx.set(user_id)
+            if user_city is not None:
+                user_city_ctx.set(user_city)
+
             # Inject user context into the callbacks so tools can access them
             context_callbacks = [ContextCallbackHandler(user_id=user_id, user_city=user_city, db=db)]
             

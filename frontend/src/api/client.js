@@ -270,4 +270,18 @@ export const getMe = async () => {
     return data;
 };
 
+// ─────────────────────────────────────────────
+// Stats
+// ─────────────────────────────────────────────
+
+export const getStatsSummary = async () => {
+    const { data } = await api.get('/stats/summary');
+    return data;
+};
+
+export const getStatsDaily = async (days = 30) => {
+    const { data } = await api.get(`/stats/daily?days=${days}`);
+    return data;
+};
+
 export default api;

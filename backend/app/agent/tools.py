@@ -41,24 +41,30 @@ def _run_async(coro):
 
 
 @tool("geocode_stop")
-def geocode_stop_tool(query: str) -> Dict[str, Any]:
+async def geocode_stop_tool(query: str) -> Dict[str, Any]:
     """
     Resolves a place name, street name, or address description to a geocoded stop.
 
     Input: free-text description of a stop.
-    Output: { success, lat, lng, formatted_address, error }.
+    Output: { success, lat, lng, formatted_address, error, out_of_area }.
     """
     user_city = user_city_ctx.get() or "Hicksville, NY"
-    result = _run_async(geocoding_service.geocode(query, user_city=user_city))
+    result = await geocoding_service.geocode(query, user_city=user_city)
     if not result.get("success"):
         return {"error": result.get("error", "This stop could not be found. Please ask the driver for a better description of this specific stop only.")}
-    if result.get("success") and result.get("confidence") == "low":
+    
+    if result.get("ambiguous"):
+        candidates_str = "\n".join([f"{i+1}. {c}" for i, c in enumerate(result.get("candidates", []))])
+        result["warning"] = f"AMBIGUOUS LOCATION: I found a few matches outside your area — which one did you mean?\n{candidates_str}\n\nThe agent MUST ask the driver to pick a number before proceeding, and MUST NOT add the stop until confirmed."
+    elif result.get("out_of_area"):
+        result["warning"] = f"OUT OF AREA: I found {result.get('formatted_address')} — that's outside your usual area. Is that the right stop? The agent MUST ask the driver to explicitly confirm this formatted_address before proceeding."
+    elif result.get("success") and result.get("confidence") == "low":
         result["warning"] = "LOW CONFIDENCE RESOLUTION. The agent MUST ask the driver to explicitly confirm this formatted_address before proceeding."
     return result
 
 
 @tool("search_saved_stops")
-def search_saved_stops_tool(query: str) -> List[Dict[str, Any]]:
+async def search_saved_stops_tool(query: str) -> List[Dict[str, Any]]:
     """
     Searches previously saved stops using semantic similarity.
 
@@ -72,7 +78,7 @@ def search_saved_stops_tool(query: str) -> List[Dict[str, Any]]:
 
 
 @tool("search_saved_trips")
-def search_saved_trips_tool(query: str) -> List[Dict[str, Any]]:
+async def search_saved_trips_tool(query: str) -> List[Dict[str, Any]]:
     """
     Searches saved trips using semantic similarity.
 
@@ -86,7 +92,7 @@ def search_saved_trips_tool(query: str) -> List[Dict[str, Any]]:
 
 
 @tool("get_trip_by_id")
-def get_trip_by_id_tool(trip_id_str: str) -> Dict[str, Any]:
+async def get_trip_by_id_tool(trip_id_str: str) -> Dict[str, Any]:
     """
     Fetches the full details of a saved trip including all stops in order.
 
@@ -98,39 +104,34 @@ def get_trip_by_id_tool(trip_id_str: str) -> Dict[str, Any]:
     except ValueError:
         return {"error": "trip_id must be an integer string."}
 
-    # Capture user_id in sync scope — _run_async may lose contextvars
     user_id = user_id_ctx.get()
-
-    async def _fetch():
-        if not user_id:
-            return {"error": "Authentication required."}
-            
-        db = SessionLocal()
-        try:
-            trip = await trips_service.get_trip(db, trip_id, user_id=user_id)
-            if not trip:
-                return {"error": f"Trip with id {trip_id} not found."}
-            stops = [
-                {
-                    "id": stop.id,
-                    "position": stop.position,
-                    "label": stop.label,
-                    "resolved": stop.resolved,
-                    "lat": stop.lat,
-                    "lng": stop.lng,
-                    "note": stop.note,
-                }
-                for stop in trip.stops
-            ]
-            return {"id": trip.id, "name": trip.name, "notes": trip.notes, "stops": stops}
-        finally:
-            db.close()
-
-    return _run_async(_fetch())
+    if not user_id:
+        return {"error": "Authentication required."}
+        
+    db = SessionLocal()
+    try:
+        trip = await trips_service.get_trip(db, trip_id, user_id=user_id)
+        if not trip:
+            return {"error": f"Trip with id {trip_id} not found."}
+        stops = [
+            {
+                "id": stop.id,
+                "position": stop.position,
+                "label": stop.label,
+                "resolved": stop.resolved,
+                "lat": stop.lat,
+                "lng": stop.lng,
+                "note": stop.note,
+            }
+            for stop in trip.stops
+        ]
+        return {"id": trip.id, "name": trip.name, "notes": trip.notes, "stops": stops}
+    finally:
+        db.close()
 
 
 @tool("get_recent_history")
-def get_recent_history_tool(days_str: str = "7") -> List[Dict[str, Any]]:
+async def get_recent_history_tool(days_str: str = "7") -> List[Dict[str, Any]]:
     """
     Returns recent trip launch history for context.
 
@@ -170,7 +171,7 @@ def get_recent_history_tool(days_str: str = "7") -> List[Dict[str, Any]]:
         db.close()
 
 @tool("save_trip")
-def save_trip_tool(trip_data_json: str) -> str:
+async def save_trip_tool(trip_data_json: str) -> str:
     """
     Saves a trip and its stops to the database.
     Input MUST be a valid JSON string mapping to the trip schema:
@@ -183,31 +184,24 @@ def save_trip_tool(trip_data_json: str) -> str:
     IMPORTANT: You MUST copy the exact lat and lng float values from your previous message exactly out to their full decimal precision. Do not round or truncate them, otherwise the map will be broken.
     Output: success message with trip ID, or error message.
     """
-    # Capture user_id NOW in the sync scope where contextvars are valid.
-    # _run_async may spawn a new thread that loses contextvars.
     user_id = user_id_ctx.get()
+    
+    if not user_id:
+        return "Authentication required to save trips."
 
     try:
         data = json.loads(trip_data_json)
-        # Handle the case where the LLM might hallucinate a `notes` field or others not matching exactly if it isn't strict,
-        # but schemas.TripCreate handles standard parsing gracefully.
         trip_in = schemas.TripCreate(**data)
     except Exception as e:
         return f"Error parsing input. Ensure you pass a valid JSON string. Detail: {str(e)}"
     
-    async def _save():
-        if not user_id:
-            return "Authentication required to save trips."
-            
-        db = SessionLocal()
-        try:
-            trip = await trips_service.create_trip(db, trip_in, user_id)
-            return f"Successfully saved trip '{trip.name}' with ID {trip.id}"
-        except Exception as e:
-            return f"Database error while saving trip: {str(e)}"
-        finally:
-            db.close()
-            
-    return _run_async(_save())
+    db = SessionLocal()
+    try:
+        trip = await trips_service.create_trip(db, trip_in, user_id)
+        return f"Successfully saved trip '{trip.name}' with ID {trip.id}"
+    except Exception as e:
+        return f"Database error while saving trip: {str(e)}"
+    finally:
+        db.close()
 
 

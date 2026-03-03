@@ -9,7 +9,7 @@ import PreviewScreen from './screens/PreviewScreen';
 import TripsScreen from './screens/TripsScreen';
 import TripDetailScreen from './screens/TripDetailScreen';
 import HistoryScreen from './screens/HistoryScreen';
-import LLMLogsScreen from './screens/LLMLogsScreen';
+import StatsScreen from './screens/StatsScreen';
 import AuthScreen from './screens/AuthScreen';
 import Toast from './components/Toast';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -38,7 +38,7 @@ const TABS = [
         )
     },
     {
-        path: '/admin/logs', label: 'Logs', icon: (
+        path: '/stats', label: 'Stats', icon: (
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
         )
     },
@@ -112,7 +112,7 @@ function AppShell() {
                         <Route path="/trips" element={<TripsScreen />} />
                         <Route path="/trips/:tripId" element={<TripDetailScreen />} />
                         <Route path="/history" element={<HistoryScreen />} />
-                        <Route path="/admin/logs" element={<LLMLogsScreen />} />
+                        <Route path="/stats" element={<StatsScreen />} />
                     </Route>
                 </Routes>
             </main>
