@@ -11,12 +11,11 @@ import TripDetailScreen from './screens/TripDetailScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import StatsScreen from './screens/StatsScreen';
 import AuthScreen from './screens/AuthScreen';
+import AccountScreen from './screens/AccountScreen';
 import LandingPage from './screens/LandingPage';
 import Toast from './components/Toast';
 import ProtectedRoute from './components/ProtectedRoute';
-import LogoutModal from './components/LogoutModal';
 import useAuthStore from './store/authStore';
-import { logout } from './api/client';
 
 const TABS = [
     {
@@ -44,11 +43,14 @@ const TABS = [
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
         )
     },
+    {
+        path: '/account', label: 'Account', icon: (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+        )
+    },
 ];
 
 function BottomTabBar() {
-    const [showLogoutModal, setShowLogoutModal] = useState(false);
-
     return (
         <>
             <nav className="fixed bottom-0 left-0 right-0 z-50 glass-bar border-t border-border safe-area-bottom">
@@ -76,19 +78,8 @@ function BottomTabBar() {
                             )}
                         </NavLink>
                     ))}
-                    {/* Logout Button */}
-                    <button
-                        onClick={() => setShowLogoutModal(true)}
-                        className="relative flex flex-col items-center justify-center min-w-touch min-h-touch px-2 py-1 transition-colors duration-150 text-text-muted hover:text-red-500"
-                    >
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-                        <span className="text-[10px] mt-1 font-medium tracking-wide">
-                            Logout
-                        </span>
-                    </button>
                 </div>
             </nav>
-            {showLogoutModal && <LogoutModal onClose={() => setShowLogoutModal(false)} />}
         </>
     );
 }
@@ -118,6 +109,7 @@ function AppShell() {
                         <Route path="/trips/:tripId" element={<TripDetailScreen />} />
                         <Route path="/history" element={<HistoryScreen />} />
                         <Route path="/stats" element={<StatsScreen />} />
+                        <Route path="/account" element={<AccountScreen />} />
                     </Route>
                 </Routes>
             </main>

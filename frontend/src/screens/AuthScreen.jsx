@@ -20,15 +20,18 @@ export default function AuthScreen() {
     const showToast = useToastStore(state => state.showToast);
 
     const [mode, setMode] = useState('login'); // 'login' | 'signup'
-    const [signupStep, setSignupStep] = useState(1); // 1: Creds, 2: Location
+    const [signupStep, setSignupStep] = useState(1); // 1: Creds, 2: Location, 3: Personal
 
     // Forms
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [city, setCity] = useState('');
     const [stateInput, setStateInput] = useState('');
     const [zipCode, setZipCode] = useState('');
+    const [birthday, setBirthday] = useState('');
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -55,20 +58,26 @@ export default function AuthScreen() {
     const handleSignupStep1 = (e) => {
         e.preventDefault();
         setError('');
-        if (!email || !password || !confirmPassword) return setError('All fields required.');
+        if (!firstName || !lastName || !email || !password || !confirmPassword) return setError('All fields required.');
         if (password !== confirmPassword) return setError('Passwords do not match.');
         if (password.length < 8) return setError('Password must be at least 8 characters.');
         setSignupStep(2);
     };
 
-    const handleSignupStep2 = async (e) => {
+    const handleSignupStep2 = (e) => {
         e.preventDefault();
         setError('');
         if (!city || !stateInput || !zipCode) return setError('All location fields required.');
+        setSignupStep(3);
+    };
 
+    const handleSignupStep3 = async (e, skip = false) => {
+        if (e && e.preventDefault) e.preventDefault();
+        setError('');
         setLoading(true);
         try {
-            const data = await signup(email, password, city, stateInput, String(zipCode));
+            const finalBirthday = skip ? null : (birthday || null);
+            const data = await signup(firstName, lastName, finalBirthday, email, password, city, stateInput, String(zipCode));
             setUser(data.user);
             showToast('Account created successfully!', 'success');
             navigate('/home', { replace: true });
@@ -86,8 +95,11 @@ export default function AuthScreen() {
         setMode(mode === 'login' ? 'signup' : 'login');
         setSignupStep(1);
         setError('');
+        setFirstName('');
+        setLastName('');
         setPassword('');
         setConfirmPassword('');
+        setBirthday('');
     };
 
     return (
@@ -202,18 +214,32 @@ export default function AuthScreen() {
                         {mode === 'signup' && (
                             <>
                                 {/* Polished Step Indicators */}
-                                <div className="flex items-center justify-center gap-4 mb-8">
+                                <div className="flex items-center justify-center gap-3 mb-8">
                                     <div className={`flex items-center justify-center w-8 h-8 rounded-full text-[13px] font-bold border-2 transition-all duration-300 ${signupStep >= 1 ? 'bg-accent border-accent text-white shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-transparent border-white/[0.1] text-white/30'}`}>
                                         1
                                     </div>
-                                    <div className={`w-12 h-[2px] rounded-full transition-all duration-300 ${signupStep === 2 ? 'bg-accent/50' : 'bg-white/[0.06]'}`} />
-                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-[13px] font-bold border-2 transition-all duration-300 ${signupStep === 2 ? 'bg-accent border-accent text-white shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-transparent border-white/[0.1] text-white/30'}`}>
+                                    <div className={`w-8 sm:w-12 h-[2px] rounded-full transition-all duration-300 ${signupStep >= 2 ? 'bg-accent/50' : 'bg-white/[0.06]'}`} />
+                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-[13px] font-bold border-2 transition-all duration-300 ${signupStep >= 2 ? 'bg-accent border-accent text-white shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-transparent border-white/[0.1] text-white/30'}`}>
                                         2
+                                    </div>
+                                    <div className={`w-8 sm:w-12 h-[2px] rounded-full transition-all duration-300 ${signupStep === 3 ? 'bg-accent/50' : 'bg-white/[0.06]'}`} />
+                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-[13px] font-bold border-2 transition-all duration-300 ${signupStep === 3 ? 'bg-accent border-accent text-white shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-transparent border-white/[0.1] text-white/30'}`}>
+                                        3
                                     </div>
                                 </div>
 
                                 {signupStep === 1 && (
-                                    <form onSubmit={handleSignupStep1} className="flex flex-col gap-5">
+                                    <form onSubmit={handleSignupStep1} className="flex flex-col gap-4">
+                                        <div className="flex flex-col sm:flex-row gap-4">
+                                            <div className="space-y-1.5 flex-1">
+                                                <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">First Name</label>
+                                                <input type="text" required className="w-full px-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                                            </div>
+                                            <div className="space-y-1.5 flex-1">
+                                                <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">Last Name</label>
+                                                <input type="text" required className="w-full px-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                                            </div>
+                                        </div>
                                         <div className="space-y-1.5">
                                             <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">Email</label>
                                             <div className="relative">
@@ -270,6 +296,24 @@ export default function AuthScreen() {
                                         <div className="flex gap-3 mt-4">
                                             <button type="button" onClick={() => setSignupStep(1)} disabled={loading} className="w-1/3 flex items-center justify-center gap-2 bg-white/[0.03] border border-white/[0.08] text-white hover:bg-white/[0.08] py-3.5 px-4 rounded-xl font-bold transition-all active:scale-[0.98] min-h-touch text-[16px] disabled:opacity-50">
                                                 Back
+                                            </button>
+                                            <button type="submit" disabled={loading} className="flex-1 flex items-center justify-center gap-2 bg-white/[0.08] text-white py-3.5 px-4 rounded-xl font-bold hover:bg-white/[0.12] transition-all active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 min-h-touch text-[16px]">
+                                                Next Step →
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
+
+                                {signupStep === 3 && (
+                                    <form onSubmit={(e) => handleSignupStep3(e, false)} className="flex flex-col gap-5">
+                                        <p className="text-[14px] text-white/50 text-center mb-2">Almost there! Add a bit more detail (Optional).</p>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">Birthday</label>
+                                            <input type="date" className="w-full px-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
+                                        </div>
+                                        <div className="flex gap-3 mt-4">
+                                            <button type="button" onClick={(e) => handleSignupStep3(e, true)} disabled={loading} className="w-1/3 flex items-center justify-center gap-2 bg-white/[0.03] border border-white/[0.08] text-white/70 hover:text-white hover:bg-white/[0.08] py-3.5 px-4 rounded-xl font-bold transition-all active:scale-[0.98] min-h-touch text-[14px] disabled:opacity-50">
+                                                Skip
                                             </button>
                                             <button type="submit" disabled={loading} className="flex-1 flex items-center justify-center gap-2 bg-accent text-white py-3.5 px-4 rounded-xl font-bold shadow-[0_4px_20px_rgba(245,158,11,0.25)] hover:bg-amber-500 transition-all active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 min-h-touch text-[16px]">
                                                 {loading && <Icons.Loader2 className="w-5 h-5" />}

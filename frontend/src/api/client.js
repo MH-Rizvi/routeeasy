@@ -264,9 +264,24 @@ export const login = async (email, password) => {
 };
 
 /** Signup new user */
-export const signup = async (email, password, city, state, zip_code) => {
-    const { data } = await api.post('/auth/signup', { email, password, city, state, zip_code });
+export const signup = async (first_name, last_name, birthday, email, password, city, state, zip_code) => {
+    const { data } = await api.post('/auth/signup', { first_name, last_name, birthday, email, password, city, state, zip_code });
     setTokens(data.access_token);
+    return data;
+};
+
+export const updateProfile = async (profileData) => {
+    const { data } = await api.patch('/auth/profile', profileData);
+    return data;
+};
+
+export const changePassword = async (current_password, new_password) => {
+    const { data } = await api.post('/auth/change-password', { current_password, new_password });
+    return data;
+};
+
+export const deleteAccount = async () => {
+    const { data } = await api.delete('/auth/account');
     return data;
 };
 

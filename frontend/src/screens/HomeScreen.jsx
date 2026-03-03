@@ -7,9 +7,11 @@ import useTripStore from '../store/tripStore';
 import TripCard from '../components/TripCard';
 import useToastStore from '../store/toastStore';
 import Header from '../components/Header';
+import useAuthStore from '../store/authStore';
 
 export default function HomeScreen() {
     const navigate = useNavigate();
+    const { user } = useAuthStore();
     const { trips, loading, error, fetchTrips, clearError } = useTripStore();
 
     useEffect(() => { fetchTrips(); }, [fetchTrips]);
@@ -38,9 +40,28 @@ export default function HomeScreen() {
     }).length;
 
     const currentHour = new Date().getHours();
-    let greeting = 'Good evening';
-    if (currentHour < 12) greeting = 'Good morning';
-    else if (currentHour < 17) greeting = 'Good afternoon';
+    let timeGreeting = 'Good evening';
+    if (currentHour < 12) timeGreeting = 'Good morning';
+    else if (currentHour < 17) timeGreeting = 'Good afternoon';
+
+    const renderGreeting = () => {
+        if (user?.first_name) {
+            return (
+                <>
+                    <p className="text-accent text-[14px] font-bold tracking-widest uppercase">Welcome back</p>
+                    <h1 className="text-white text-[32px] font-extrabold mt-1 tracking-tight bg-gradient-to-r from-white to-white/70 bg-clip-text">
+                        {timeGreeting}, {user.first_name}!
+                    </h1>
+                </>
+            );
+        }
+        return (
+            <>
+                <p className="text-accent text-[14px] font-bold tracking-widest uppercase">{timeGreeting}</p>
+                <h1 className="text-white text-[32px] font-extrabold mt-1 tracking-tight">Ready to roll?</h1>
+            </>
+        );
+    };
 
     return (
         <div className="min-h-full pb-4 flex flex-col animate-page-enter">
@@ -48,8 +69,7 @@ export default function HomeScreen() {
 
             {/* Greeting */}
             <div className="px-5 pt-6 animate-fade-up">
-                <p className="text-accent text-[14px] font-bold tracking-widest uppercase">{greeting}</p>
-                <h1 className="text-white text-[32px] font-extrabold mt-1 tracking-tight">Ready to roll?</h1>
+                {renderGreeting()}
             </div>
 
             <div className="px-5 mt-5 flex-1 flex flex-col">

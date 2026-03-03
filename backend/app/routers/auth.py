@@ -35,9 +35,11 @@ async def signup(request: schemas.SignupRequest, response: Response, db: Session
     # Hash password
     hashed_password = get_password_hash(request.password)
     
-    # Create User
     new_user = models.User(
         email=request.email,
+        first_name=request.first_name,
+        last_name=request.last_name,
+        birthday=request.birthday,
         password_hash=hashed_password
     )
     db.add(new_user)
@@ -86,9 +88,13 @@ async def signup(request: schemas.SignupRequest, response: Response, db: Session
         "token_type": "bearer",
         "user": {
             "id": new_user.id,
+            "first_name": new_user.first_name or "",
+            "last_name": new_user.last_name or "",
+            "birthday": new_user.birthday,
             "email": new_user.email,
             "city": new_profile.city,
             "state": new_profile.state,
+            "zip_code": new_profile.zip_code,
             "full_location": new_profile.full_location
         }
     }
@@ -135,9 +141,13 @@ async def login(request: schemas.LoginRequest, response: Response, db: Session =
         "token_type": "bearer",
         "user": {
             "id": user.id,
+            "first_name": user.first_name or "",
+            "last_name": user.last_name or "",
+            "birthday": user.birthday,
             "email": user.email,
             "city": profile.city if profile else "",
             "state": profile.state if profile else "",
+            "zip_code": profile.zip_code if profile else "",
             "full_location": profile.full_location if profile else ""
         }
     }
@@ -185,8 +195,84 @@ async def me(current_user: models.User = Depends(get_current_user)):
     profile = current_user.profile
     return schemas.UserResponse(
         id=current_user.id,
+        first_name=current_user.first_name or "",
+        last_name=current_user.last_name or "",
+        birthday=current_user.birthday,
         email=current_user.email,
         city=profile.city if profile else "",
         state=profile.state if profile else "",
+        zip_code=profile.zip_code if profile else "",
         full_location=profile.full_location if profile else ""
     )
+
+@router.patch("/profile", response_model=schemas.UserResponse)
+async def update_profile(
+    request: schemas.UpdateProfileRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update user personal and location information."""
+    if request.first_name is not None:
+        current_user.first_name = request.first_name
+    if request.last_name is not None:
+        current_user.last_name = request.last_name
+    if request.birthday is not None:
+        current_user.birthday = request.birthday
+        
+    profile = current_user.profile
+    if profile:
+        if request.city is not None:
+            profile.city = request.city
+        if request.state is not None:
+            profile.state = request.state
+        if request.zip_code is not None:
+            profile.zip_code = request.zip_code
+        if request.city is not None or request.state is not None:
+            c = profile.city if request.city is None else request.city
+            s = profile.state if request.state is None else request.state
+            profile.full_location = f"{c}, {s}"
+            
+    db.commit()
+    db.refresh(current_user)
+    
+    return schemas.UserResponse(
+        id=current_user.id,
+        first_name=current_user.first_name or "",
+        last_name=current_user.last_name or "",
+        birthday=current_user.birthday,
+        email=current_user.email,
+        city=profile.city if profile else "",
+        state=profile.state if profile else "",
+        zip_code=profile.zip_code if profile else "",
+        full_location=profile.full_location if profile else ""
+    )
+
+
+@router.post("/change-password", response_model=dict)
+async def change_password(
+    request: schemas.ChangePasswordRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Change the user's password."""
+    if not verify_password(request.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password",
+        )
+        
+    current_user.password_hash = get_password_hash(request.new_password)
+    db.commit()
+    return {"message": "Password changed successfully"}
+
+
+@router.delete("/account", response_model=dict)
+async def delete_account(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a user account and all completely associated data."""
+    db.delete(current_user)
+    db.commit()
+    return {"message": "Account deleted successfully"}
+

@@ -11,11 +11,14 @@ from pydantic import BaseModel, ConfigDict
 
 
 class SignupRequest(BaseModel):
+    first_name: str
+    last_name: str
     email: str
     password: str
     city: str
     state: str
     zip_code: str
+    birthday: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
@@ -32,10 +35,26 @@ class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    first_name: str
+    last_name: str
     email: str
     city: str
     state: str
+    zip_code: str
     full_location: str
+    birthday: Optional[str] = None
+
+class UpdateProfileRequest(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    birthday: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 
 # ----- Shared / utility schemas -----
