@@ -37,44 +37,58 @@ export default function HomeScreen() {
         return diff < 7 * 24 * 60 * 60 * 1000;
     }).length;
 
+    const currentHour = new Date().getHours();
+    let greeting = 'Good evening';
+    if (currentHour < 12) greeting = 'Good morning';
+    else if (currentHour < 17) greeting = 'Good afternoon';
+
     return (
         <div className="min-h-full pb-4 flex flex-col">
             <Header />
 
             {/* Greeting */}
             <div className="px-5 pt-6 animate-fade-up">
-                <p className="text-[#9CA3AF] text-[14px]">Good morning</p>
-                <h1 className="text-white text-[28px] font-bold mt-1">Ready to roll?</h1>
+                <p className="text-accent text-[14px] font-bold tracking-widest uppercase">{greeting}</p>
+                <h1 className="text-white text-[32px] font-extrabold mt-1 tracking-tight">Ready to roll?</h1>
             </div>
 
             <div className="px-5 mt-5 flex-1 flex flex-col">
-                {/* Stats row */}
-                <div className="grid grid-cols-3 gap-3 mb-0 animate-fade-up" style={{ animationDelay: '50ms' }}>
-                    <StatCard label="This Week" value={tripsThisWeek} />
-                    <StatCard label="Total Stops" value={totalStops} />
-                    <StatCard label="Saved Routes" value={trips.length} />
+                {/* Hero Action Card */}
+                <div className="mb-8 animate-fade-up" style={{ animationDelay: '50ms' }}>
+                    <button
+                        onClick={() => navigate('/chat')}
+                        className="w-full relative overflow-hidden rounded-3xl bg-gradient-to-br from-accent via-orange-500 to-amber-600 p-[1px] group transition-transform active:scale-95 text-left"
+                        style={{ boxShadow: '0 8px 32px rgba(245,158,11,0.25)' }}
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="w-full h-full bg-[#111827]/90 backdrop-blur-xl rounded-[23px] p-6 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-white font-bold text-[22px] tracking-tight mb-1">Plan a Route</h2>
+                                <p className="text-text-muted text-[13px]">Powered by Routigo AI</p>
+                            </div>
+                            <div className="w-14 h-14 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center relative">
+                                <div className="absolute inset-0 bg-accent/20 animate-ping rounded-full" />
+                                <span className="text-accent text-[28px] relative z-10 leading-none pb-1">＋</span>
+                            </div>
+                        </div>
+                    </button>
                 </div>
 
                 {/* Loading */}
                 {loading && trips.length === 0 && (
-                    <div className="space-y-3">
-                        {[1, 2, 3].map((i) => <div key={i} className="skeleton rounded-2xl h-28" />)}
+                    <div className="space-y-4">
+                        {[1, 2].map((i) => <div key={i} className="skeleton rounded-2xl h-24" />)}
                     </div>
                 )}
 
                 {/* Empty state */}
                 {!loading && trips.length === 0 && (
-                    <div className="flex-1 flex flex-col items-center justify-center pb-12 text-center animate-fade-up mt-8">
-                        <div className="text-[48px] mb-4 leading-none">🚌</div>
-                        <h2 className="text-[18px] font-semibold text-white mb-2">No routes saved yet</h2>
-                        <p className="text-[#6B7280] text-[14px] mb-6 max-w-xs px-4">Describe your first route to the AI assistant</p>
-                        <button
-                            onClick={() => navigate('/chat')}
-                            className="w-full h-14 bg-[#F59E0B] text-black font-bold text-[18px] rounded-2xl flex items-center justify-center transition-transform active:scale-95"
-                            style={{ boxShadow: '0 4px 24px rgba(245,158,11,0.25)' }}
-                        >
-                            ＋ Plan New Route
-                        </button>
+                    <div className="flex-1 flex flex-col items-center justify-center pb-12 text-center animate-fade-up style={{ animationDelay: '100ms' }}">
+                        <div className="w-20 h-20 rounded-full bg-surface border border-border flex items-center justify-center mb-4">
+                            <span className="text-[32px]">🛣️</span>
+                        </div>
+                        <h2 className="text-[18px] font-semibold text-white mb-2">No past routes</h2>
+                        <p className="text-[#6B7280] text-[14px] max-w-[250px]">Tap the button above to plan your very first delivery or route with AI.</p>
                     </div>
                 )}
 
@@ -97,29 +111,9 @@ export default function HomeScreen() {
                     ))}
                 </div>
 
-                {/* FAB */}
-                {trips.length > 0 && (
-                    <button
-                        onClick={() => navigate('/chat')}
-                        className="fixed bottom-safe-fab right-5 z-40 w-14 h-14 rounded-full btn-accent text-2xl shadow-glow flex items-center justify-center animate-glow-pulse"
-                        aria-label="Plan a new route"
-                    >
-                        +
-                    </button>
-                )}
-
-                {/* Spacer to prevent FAB clipping */}
-                <div className="h-24 sm:h-12 w-full shrink-0" />
+                {/* Spacer to prevent clipping on small screens */}
+                <div className="h-12 w-full shrink-0" />
             </div>
-        </div>
-    );
-}
-
-function StatCard({ label, value }) {
-    return (
-        <div className="bg-[#111827] border border-[#1F2937] rounded-xl p-4 text-center">
-            <p className="text-[32px] font-bold text-white mb-0.5 leading-none">{String(value)}</p>
-            <p className="text-[#6B7280] text-[11px] uppercase tracking-wider">{label}</p>
         </div>
     );
 }
