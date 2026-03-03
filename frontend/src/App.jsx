@@ -1,6 +1,7 @@
 /**
  * App.jsx — Root with dark enterprise tab bar.
  */
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom';
 import HomeScreen from './screens/HomeScreen';
 import ChatScreen from './screens/ChatScreen';
@@ -9,7 +10,11 @@ import TripsScreen from './screens/TripsScreen';
 import TripDetailScreen from './screens/TripDetailScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import LLMLogsScreen from './screens/LLMLogsScreen';
+import AuthScreen from './screens/AuthScreen';
 import Toast from './components/Toast';
+import ProtectedRoute from './components/ProtectedRoute';
+import useAuthStore from './store/authStore';
+import { logout } from './api/client';
 
 const TABS = [
     {
@@ -66,6 +71,19 @@ function BottomTabBar() {
                         )}
                     </NavLink>
                 ))}
+                {/* Logout Button */}
+                <button
+                    onClick={() => {
+                        useAuthStore.getState().clearUser();
+                        logout();
+                    }}
+                    className="relative flex flex-col items-center justify-center min-w-touch min-h-touch px-2 py-1 transition-colors duration-150 text-text-muted hover:text-red-500"
+                >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+                    <span className="text-[10px] mt-1 font-medium tracking-wide">
+                        Logout
+                    </span>
+                </button>
             </div>
         </nav>
     );
@@ -73,20 +91,29 @@ function BottomTabBar() {
 
 function AppShell() {
     const location = useLocation();
-    const hideTabBar = location.pathname.startsWith('/preview');
+    const hideTabBar = location.pathname.startsWith('/preview') || location.pathname === '/login';
+    const hydrate = useAuthStore((state) => state.hydrate);
+
+    useEffect(() => {
+        hydrate();
+    }, [hydrate]);
 
     return (
         <div className="flex flex-col min-h-screen relative">
             <Toast />
             <main className={`flex-1 flex flex-col overflow-y-auto ${hideTabBar ? '' : 'pb-safe-tabbar'}`}>
                 <Routes>
-                    <Route path="/" element={<HomeScreen />} />
-                    <Route path="/chat" element={<ChatScreen />} />
-                    <Route path="/preview" element={<PreviewScreen />} />
-                    <Route path="/trips" element={<TripsScreen />} />
-                    <Route path="/trips/:tripId" element={<TripDetailScreen />} />
-                    <Route path="/history" element={<HistoryScreen />} />
-                    <Route path="/admin/logs" element={<LLMLogsScreen />} />
+                    <Route path="/login" element={<AuthScreen />} />
+
+                    <Route element={<ProtectedRoute />}>
+                        <Route path="/" element={<HomeScreen />} />
+                        <Route path="/chat" element={<ChatScreen />} />
+                        <Route path="/preview" element={<PreviewScreen />} />
+                        <Route path="/trips" element={<TripsScreen />} />
+                        <Route path="/trips/:tripId" element={<TripDetailScreen />} />
+                        <Route path="/history" element={<HistoryScreen />} />
+                        <Route path="/admin/logs" element={<LLMLogsScreen />} />
+                    </Route>
                 </Routes>
             </main>
             {!hideTabBar && <BottomTabBar />}

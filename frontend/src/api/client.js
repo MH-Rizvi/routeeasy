@@ -8,6 +8,7 @@ import axios from 'axios';
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,
     timeout: 120000, // 120 s — agent calls can take a while with key rotation retries
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -17,16 +18,13 @@ const api = axios.create({
 });
 
 let _accessToken = null;
-let _refreshToken = null;
 
-export const setTokens = (access, refresh) => {
+export const setTokens = (access) => {
     if (access) _accessToken = access;
-    if (refresh) _refreshToken = refresh;
 };
 
 export const clearTokens = () => {
     _accessToken = null;
-    _refreshToken = null;
 };
 
 // Request Interceptor: Attach Bearer token to all requests if present
@@ -37,6 +35,8 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
+let isRefreshing = false;
+
 // Response Interceptor: Handle 401s by attempting to refresh the token automatically
 api.interceptors.response.use(
     (response) => response,
@@ -44,30 +44,50 @@ api.interceptors.response.use(
         const originalRequest = error.config;
 
         // Only attempt refresh if it's a 401 and we haven't retried yet
-        // Also skip retry if the request was specifically for login or refresh itself
-        if (
-            error.response?.status === 401 &&
-            !originalRequest._retry &&
-            !originalRequest.url.includes('/auth/login') &&
-            !originalRequest.url.includes('/auth/refresh')
-        ) {
-            originalRequest._retry = true;
-            try {
-                if (!_refreshToken) throw new Error('No refresh token available');
+        if (error.response?.status === 401 && !originalRequest._retry) {
 
+            // If the failed request was a login, just reject
+            if (originalRequest.url.includes('/auth/login')) {
+                return Promise.reject(error);
+            }
+
+            // If the failed request WAS the refresh endpoint itself, we are completely logged out
+            if (originalRequest.url.includes('/auth/refresh')) {
+                clearTokens();
+                if (window.location.pathname !== '/login') {
+                    window.location.href = '/login';
+                }
+                return Promise.reject(error);
+            }
+
+            // If a refresh is already in flight, reject the other concurrent requests 
+            // to avoid spamming the refresh endpoint. (Can be improved with a queue later)
+            if (isRefreshing) {
+                return Promise.reject(error);
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            try {
                 // Call refresh endpoint directly with axios to avoid interceptor loop
+                // Cookie will automatically be included due to withCredentials
                 const { data } = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/auth/refresh`, {}, {
-                    headers: { Authorization: `Bearer ${_refreshToken}` }
+                    withCredentials: true
                 });
 
                 // Update in-memory token and retry the failed request
                 _accessToken = data.access_token;
                 originalRequest.headers.Authorization = `Bearer ${_accessToken}`;
+                isRefreshing = false;
                 return api(originalRequest);
             } catch (refreshError) {
                 // If refresh fails, clear tokens and aggressively redirect to login
+                isRefreshing = false;
                 clearTokens();
-                window.location.href = '/login';
+                if (window.location.pathname !== '/login') {
+                    window.location.href = '/login';
+                }
                 return Promise.reject(refreshError);
             }
         }
@@ -222,19 +242,24 @@ export const transcribeVoice = async (audioBlob) => {
 /** Login with email and password */
 export const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
-    setTokens(data.access_token, data.refresh_token);
+    setTokens(data.access_token);
     return data;
 };
 
 /** Signup new user */
 export const signup = async (email, password, city, state, zip_code) => {
     const { data } = await api.post('/auth/signup', { email, password, city, state, zip_code });
-    setTokens(data.access_token, data.refresh_token);
+    setTokens(data.access_token);
     return data;
 };
 
 /** Logout user */
-export const logout = () => {
+export const logout = async () => {
+    try {
+        await api.post('/auth/logout');
+    } catch (e) {
+        console.error('Logout failed:', e);
+    }
     clearTokens();
     window.location.href = '/login';
 };

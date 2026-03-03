@@ -15,12 +15,13 @@ from app.auth import (
     get_current_user,
     verify_token
 )
+from fastapi import Response, Request
 
 router = APIRouter()
 
 
 @router.post("/signup", response_model=dict, status_code=status.HTTP_201_CREATED)
-async def signup(request: schemas.SignupRequest, db: Session = Depends(get_db)):
+async def signup(request: schemas.SignupRequest, response: Response, db: Session = Depends(get_db)):
     """Register a new user and create their location profile."""
     
     # Check if user already exists
@@ -71,9 +72,17 @@ async def signup(request: schemas.SignupRequest, db: Session = Depends(get_db)):
     access_token = create_access_token(new_user.id)
     refresh_token = create_refresh_token(new_user.id)
     
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=False,        # set True in production
+        samesite="lax",
+        max_age=7 * 24 * 60 * 60  # 7 days
+    )
+    
     return {
         "access_token": access_token,
-        "refresh_token": refresh_token,
         "token_type": "bearer",
         "user": {
             "id": new_user.id,
@@ -86,7 +95,7 @@ async def signup(request: schemas.SignupRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=dict)
-async def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
+async def login(request: schemas.LoginRequest, response: Response, db: Session = Depends(get_db)):
     """Login and get access and refresh tokens."""
     
     user = db.query(models.User).filter(models.User.email == request.email).first()
@@ -110,11 +119,19 @@ async def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
     access_token = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)
     
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=False,        # set True in production
+        samesite="lax",
+        max_age=7 * 24 * 60 * 60  # 7 days
+    )
+    
     profile = user.profile
     
     return {
         "access_token": access_token,
-        "refresh_token": refresh_token,
         "token_type": "bearer",
         "user": {
             "id": user.id,
@@ -127,22 +144,39 @@ async def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/refresh", response_model=schemas.TokenResponse)
-async def refresh(refresh_token: str):
-    """Get a new access token using a valid refresh token."""
+async def refresh(request: Request, response: Response):
+    """Get a new access token using a valid refresh token from cookie."""
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token missing",
+        )
+        
     user_id = verify_token(refresh_token, token_type="refresh")
     
     new_access_token = create_access_token(user_id)
-    
-    # Note: Depending on security constraints you might want to issue a new refresh token too
-    # but the prompt specifies just returning access token for now, so we will return both again 
-    # using the original refresh token or a new one. Let's issue a new one to be safe.
     new_refresh_token = create_refresh_token(user_id)
+    
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=7 * 24 * 60 * 60
+    )
     
     return schemas.TokenResponse(
         access_token=new_access_token,
-        refresh_token=new_refresh_token,
         token_type="bearer"
     )
+
+@router.post("/logout")
+async def logout(response: Response):
+    """Clear the refresh token cookie."""
+    response.delete_cookie("refresh_token")
+    return {"message": "Logged out successfully"}
 
 
 @router.get("/me", response_model=schemas.UserResponse)
