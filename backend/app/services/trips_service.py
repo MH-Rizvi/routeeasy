@@ -216,7 +216,7 @@ async def delete_trip(db: Session, trip_id: int, user_id: int) -> bool:
     for stop in trip.stops:
         if stop.chroma_id:
             try:
-                vector_service.delete_stop(stop.chroma_id)
+                vector_service.delete_stop(stop.chroma_id, user_id)
             except Exception as exc:
                 logger.error(
                     "Failed to delete stop %s from ChromaDB (chroma_id=%s): %s",
@@ -228,7 +228,7 @@ async def delete_trip(db: Session, trip_id: int, user_id: int) -> bool:
     # Delete trip document from ChromaDB
     if trip.chroma_id:
         try:
-            vector_service.delete_trip(trip.chroma_id)
+            vector_service.delete_trip(trip.chroma_id, user_id)
         except Exception as exc:
             logger.error(
                 "Failed to delete trip %s from ChromaDB (chroma_id=%s): %s",

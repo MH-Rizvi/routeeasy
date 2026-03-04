@@ -152,9 +152,9 @@ class LLMKeyRotator:
                 provider = self.current_provider
                 
                 if provider == "groq":
-                    if groq_key_retries < 2:
+                    if groq_key_retries < 1:
                         groq_key_retries += 1
-                        logger.warning("Groq rate limit on current key, retry %d/2: %s", groq_key_retries, str(exc)[:80])
+                        logger.warning("Groq rate limit on current key, retry %d/1: %s", groq_key_retries, str(exc)[:80])
                         continue
                     else:
                         num_groq_keys = sum(1 for p, k in self._keys if p == "groq")

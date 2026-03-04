@@ -42,13 +42,15 @@ _prompt = PromptTemplate(
     input_variables=["input", "chat_history", "agent_scratchpad", "tools", "tool_names"],
 )
 
+# Ordered by reliability/capacity — less popular models first to reduce rate-limit hits.
+# The last-successful model index is remembered ("sticky") across requests.
 GROQ_MODELS = [
-    "llama-3.3-70b-versatile",
-    "moonshotai/kimi-k2-instruct",
-    "meta-llama/llama-4-maverick-17b-128e-instruct",
     "meta-llama/llama-4-scout-17b-16e-instruct",
+    "meta-llama/llama-4-maverick-17b-128e-instruct",
+    "moonshotai/kimi-k2-instruct",
+    "llama-3.3-70b-versatile",
 ]
-_current_model_idx = 0
+_current_model_idx = 0  # sticky: remembers last successful model
 
 
 def _build_executor() -> AgentExecutor:
@@ -101,33 +103,51 @@ def _format_history(raw_history: List[Any]) -> str:
 def _extract_stops_from_steps(intermediate_steps: list) -> List[Dict[str, Any]]:
     """
     Extract geocoded stops from the agent's intermediate tool calls.
+
+    Uses an ordered dict keyed by normalised label so that re-geocoded stops
+    (e.g. after out-of-state confirmation) overwrite stale first-attempt coords.
+    This is fully generic — works for any home-state / target-state combination.
     """
-    stops: List[Dict[str, Any]] = []
-    position = 0
+    import json as _json
+
+    stops_by_label: Dict[str, Dict[str, Any]] = {}
+    # Track insertion order separately for get_trip_by_id stops
+    trip_stops: List[Dict[str, Any]] = []
+
     for action, observation in intermediate_steps:
         if action.tool == "get_trip_by_id" and isinstance(observation, dict) and "stops" in observation:
             for s in observation.get("stops", []):
-                stops.append({
+                trip_stops.append({
                     "label": s.get("label"),
                     "resolved": s.get("resolved"),
                     "lat": s.get("lat"),
                     "lng": s.get("lng"),
                     "note": s.get("note"),
-                    "position": position,
                 })
-                position += 1
         elif action.tool == "geocode_stop" and isinstance(observation, dict):
             if observation.get("success"):
-                stops.append({
-                    "label": action.tool_input if isinstance(action.tool_input, str) else str(action.tool_input),
+                # Extract clean label — LangChain ReAct may pass a JSON dict string
+                raw_input = action.tool_input if isinstance(action.tool_input, str) else str(action.tool_input)
+                label = raw_input
+                if raw_input.strip().startswith("{"):
+                    try:
+                        label = _json.loads(raw_input).get("query", raw_input)
+                    except (ValueError, _json.JSONDecodeError):
+                        pass
+
+                # Key by lowercase label so "Times Square" and "times square" dedup
+                label_key = label.strip().lower()
+                stops_by_label[label_key] = {
+                    "label": label.strip(),
                     "resolved": observation.get("formatted_address", ""),
                     "lat": observation.get("lat"),
                     "lng": observation.get("lng"),
                     "note": None,
-                    "position": position,
-                })
-                position += 1
-    return stops
+                }
+
+    # Merge: trip stops first, then geocoded stops, with correct positions
+    merged = trip_stops + list(stops_by_label.values())
+    return [{**stop, "position": i} for i, stop in enumerate(merged)]
 
 
 # Regex: matches lines like "1. Label (40.123, -73.456) - Address text"
@@ -238,6 +258,7 @@ async def _run_agent_internal(
             context_callbacks = [ContextCallbackHandler(user_id=user_id, user_city=user_city, db=db)]
             
             result = await _agent_executor.ainvoke(invoke_input, config={"callbacks": context_callbacks})
+            # Sticky model: remember which model succeeded so next request starts here
             reply = result.get("output", "")
             intermediate = result.get("intermediate_steps", [])
 
@@ -278,12 +299,12 @@ async def _run_agent_internal(
             provider = groq_rotator.current_provider
             
             if provider == "groq":
-                if groq_model_retries < 2:
+                if groq_model_retries < 1:
                     groq_model_retries += 1
-                    logger.warning("Agent Groq rate limit on model %s, retry %d/2: %s", GROQ_MODELS[_current_model_idx], groq_model_retries, str(exc)[:80])
+                    logger.warning("Agent Groq rate limit on model %s, retry %d/1: %s", GROQ_MODELS[_current_model_idx], groq_model_retries, str(exc)[:80])
                     continue
                 else:
-                    # Model exhausted, move to next model on same key
+                    # Model exhausted after 1 retry, rotate immediately
                     if groq_models_tried < len(GROQ_MODELS):
                         groq_models_tried += 1
                         _current_model_idx = (_current_model_idx + 1) % len(GROQ_MODELS)

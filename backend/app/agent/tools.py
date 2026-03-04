@@ -44,12 +44,27 @@ def _run_async(coro):
 async def geocode_stop_tool(query: str) -> Dict[str, Any]:
     """
     Resolves a place name, street name, or address description to a geocoded stop.
+    For out-of-state stops, include the state in the query (e.g. "Times Square, New York, NY").
 
-    Input: free-text description of a stop.
+    Input: free-text description of a stop (string).
     Output: { success, lat, lng, formatted_address, error }.
     """
+    # Safety net: if the LLM passes a JSON dict string, extract the query from it
+    parsed_query = query
+    if query.strip().startswith("{") and query.strip().endswith("}"):
+        import json
+        try:
+            payload = json.loads(query)
+            parsed_query = payload.get("query", query)
+            # If override_city was embedded in JSON, append it to the query
+            oc = payload.get("override_city", "")
+            if oc and oc.strip():
+                parsed_query = f"{parsed_query}, {oc.strip()}"
+        except json.JSONDecodeError:
+            pass
+
     user_city = user_city_ctx.get() or "Hicksville, NY"
-    result = await geocoding_service.geocode(query, user_city=user_city)
+    result = await geocoding_service.geocode(parsed_query, user_city=user_city)
     if not result.get("success"):
         return {"error": result.get("error", "This stop could not be found. Please ask the driver for a better description of this specific stop only.")}
     

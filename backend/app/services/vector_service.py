@@ -64,7 +64,7 @@ def add_stop(
     doc_id = f"stop_{stop_id}"
     text = f"{label} {resolved}"
 
-    _get_stops_collection(user_id).add(
+    _get_stops_collection(user_id).upsert(
         ids=[doc_id],
         embeddings=[embed(text)],
         documents=[resolved],
@@ -91,7 +91,7 @@ def add_trip(trip_id: int, name: str, stops: List[Dict[str, Any]], user_id: int)
     stop_labels = " ".join(str(s.get("label", "")) for s in stops)
     document = f"{name} {stop_labels}".strip()
 
-    _get_trips_collection(user_id).add(
+    _get_trips_collection(user_id).upsert(
         ids=[doc_id],
         embeddings=[embed(document)],
         documents=[document],
@@ -121,7 +121,7 @@ def add_history_entry(
     document = f"On {launched_at}, drove {trip_name}: {stop_labels}".strip()
     doc_id = f"history_{history_id}"
 
-    _get_history_collection(user_id).add(
+    _get_history_collection(user_id).upsert(
         ids=[doc_id],
         embeddings=[embed(document)],
         documents=[document],
