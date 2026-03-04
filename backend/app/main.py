@@ -60,6 +60,10 @@ async def startup_event() -> None:
     Base.metadata.create_all(bind=engine)
     _ = vector_service  # noqa: F841
 
+    # Purge any stale ChromaDB vectors that don't match SQL
+    from app.services.chroma_sync import sync_chroma_with_sql
+    sync_chroma_with_sql()
+
 
 @app.get("/health")
 async def health() -> dict[str, str]:

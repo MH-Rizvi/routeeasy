@@ -50,7 +50,10 @@ async def chat(
         )
 
     try:
-        user_city = current_user.profile.full_location if current_user.profile else ""
+        # Read user_city fresh from the database on every request to ensure it reflects recent profile updates
+        profile = db.query(models.UserProfile).filter(models.UserProfile.user_id == current_user.id).first()
+        user_city = profile.full_location if profile else ""
+        
         result: dict[str, Any] = await agent_service.run_agent(
             request.message,
             request.conversation_history,  # pyright: ignore[reportArgumentType]

@@ -46,20 +46,13 @@ async def geocode_stop_tool(query: str) -> Dict[str, Any]:
     Resolves a place name, street name, or address description to a geocoded stop.
 
     Input: free-text description of a stop.
-    Output: { success, lat, lng, formatted_address, error, out_of_area }.
+    Output: { success, lat, lng, formatted_address, error }.
     """
     user_city = user_city_ctx.get() or "Hicksville, NY"
     result = await geocoding_service.geocode(query, user_city=user_city)
     if not result.get("success"):
         return {"error": result.get("error", "This stop could not be found. Please ask the driver for a better description of this specific stop only.")}
     
-    if result.get("ambiguous"):
-        candidates_str = "\n".join([f"{i+1}. {c}" for i, c in enumerate(result.get("candidates", []))])
-        result["warning"] = f"AMBIGUOUS LOCATION: I found a few matches outside your area — which one did you mean?\n{candidates_str}\n\nThe agent MUST ask the driver to pick a number before proceeding, and MUST NOT add the stop until confirmed."
-    elif result.get("out_of_area"):
-        result["warning"] = f"OUT OF AREA: I found {result.get('formatted_address')} — that's outside your usual area. Is that the right stop? The agent MUST ask the driver to explicitly confirm this formatted_address before proceeding."
-    elif result.get("success") and result.get("confidence") == "low":
-        result["warning"] = "LOW CONFIDENCE RESOLUTION. The agent MUST ask the driver to explicitly confirm this formatted_address before proceeding."
     return result
 
 

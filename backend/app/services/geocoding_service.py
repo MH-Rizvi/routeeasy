@@ -110,15 +110,6 @@ async def geocode(query: str, user_city: str) -> Dict[str, Any]:
     default_parts = [p.strip() for p in user_city.split(",")] if user_city else []
     default_state = default_parts[-1] if len(default_parts) > 1 else ""
 
-    def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-        R = 3958.8 # miles
-        phi1, phi2 = math.radians(lat1), math.radians(lat2)
-        dphi = math.radians(lat2 - lat1)
-        dlam = math.radians(lon2 - lon1)
-        a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlam/2)**2
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-        return R * c
-
     def _is_invalid_generic(fmt_addr: str) -> bool:
         if "City Hall" in fmt_addr:
             return True
@@ -126,13 +117,7 @@ async def geocode(query: str, user_city: str) -> Dict[str, Any]:
             return True
         return False
 
-    def _is_within_30_miles(r_lat: float, r_lng: float) -> bool:
-        if lat_center is not None and lng_center is not None:
-            dist = _haversine(lat_center, lng_center, float(r_lat), float(r_lng))
-            return dist <= 30.0
-        return True
-
-    def _parse_res(res: Dict[str, Any], confidence: str, out_of_area: bool) -> Dict[str, Any]:
+    def _parse_res(res: Dict[str, Any], confidence: str) -> Dict[str, Any]:
         loc = res.get("geometry", {}).get("location") or {}
         return {
             "success": True,
@@ -140,7 +125,6 @@ async def geocode(query: str, user_city: str) -> Dict[str, Any]:
             "lng": float(loc.get("lng")),
             "formatted_address": res.get("formatted_address"),
             "confidence": confidence,
-            "out_of_area": out_of_area,
             "error": None,
         }
 
@@ -150,10 +134,7 @@ async def geocode(query: str, user_city: str) -> Dict[str, Any]:
     res1 = data1.get("results", [])[0] if data1 and data1.get("status") == "OK" and data1.get("results") else None
     
     if res1 and not _is_invalid_generic(res1.get("formatted_address", "")):
-        loc = res1.get("geometry", {}).get("location") or {}
-        r_lat, r_lng = loc.get("lat"), loc.get("lng")
-        if r_lat is not None and r_lng is not None and _is_within_30_miles(float(r_lat), float(r_lng)):
-            return _parse_res(res1, "high", False)
+        return _parse_res(res1, "high")
 
     # Fallback filtering logic
     def _filter_fallback_results(results: list) -> list:
@@ -174,48 +155,22 @@ async def geocode(query: str, user_city: str) -> Dict[str, Any]:
                 valid.append(r)
         return valid[:3]
 
-    def _handle_fallback(filtered_results: list, confidence: str) -> Dict[str, Any] | None:
-        if not filtered_results:
-            return None
-            
-        if len(filtered_results) == 1:
-            return _parse_res(filtered_results[0], confidence, True)
-            
-        # Ambiguous case
-        candidates = []
-        for r in filtered_results:
-            candidates.append(r.get("formatted_address"))
-            
-        return {
-            "success": True,
-            "lat": None,
-            "lng": None,
-            "formatted_address": None,
-            "confidence": confidence,
-            "out_of_area": True,
-            "ambiguous": True,
-            "candidates": candidates,
-            "error": None,
-        }
-
     # ATTEMPT 2: state only
     if default_state:
         query_state = f"{query.strip()}, {default_state}"
         data2 = await _fetch_geocode(query_state, use_bias=False)
         results2 = data2.get("results", []) if data2 and data2.get("status") == "OK" else []
         filtered2 = _filter_fallback_results(results2)
-        fallback_res2 = _handle_fallback(filtered2, "state_level")
-        if fallback_res2:
-            return fallback_res2
+        if filtered2:
+            return _parse_res(filtered2[0], "state_level")
 
     # ATTEMPT 3: national (no location bias)
     query_raw = f"{query.strip()}"
     data3 = await _fetch_geocode(query_raw, use_bias=False)
     results3 = data3.get("results", []) if data3 and data3.get("status") == "OK" else []
     filtered3 = _filter_fallback_results(results3)
-    fallback_res3 = _handle_fallback(filtered3, "national_level")
-    if fallback_res3:
-        return fallback_res3
+    if filtered3:
+        return _parse_res(filtered3[0], "national_level")
 
     # If all 3 attempts fail
     return {
@@ -224,6 +179,5 @@ async def geocode(query: str, user_city: str) -> Dict[str, Any]:
         "lng": None,
         "formatted_address": None,
         "confidence": "low",
-        "out_of_area": False,
-        "error": "Could not find this stop in your area",
+        "error": "Could not find this stop",
     }

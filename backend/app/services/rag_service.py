@@ -33,37 +33,78 @@ async def answer_history_question(question: str, user_id: int) -> Dict[str, Any]
     4. Log the LLM call to llm_logs table.
     5. Return { answer, sources_used }.
     """
+    logger.info("RAG query | user_id=%s | question=%s", user_id, question[:80])
 
     # Step 1: Embed the question
     question_embedding = embed(question)
 
     # Step 2: Retrieve top-k relevant history entries and saved trips from ChromaDB
     hist_collection = _get_history_collection(user_id)
-    hist_results = hist_collection.query(
-        query_embeddings=[question_embedding],
-        n_results=4,
-    )
-    hist_docs = hist_results.get("documents", [[]])[0]
+    hist_count = hist_collection.count()
+    logger.info("RAG | collection=%s | doc_count=%d", hist_collection.name, hist_count)
+
+    if hist_count > 0:
+        hist_results = hist_collection.query(
+            query_embeddings=[question_embedding],
+            n_results=min(4, hist_count),
+        )
+        hist_docs = hist_results.get("documents", [[]])[0]
+        logger.info("RAG | history docs returned: %s", hist_docs)
+    else:
+        hist_docs = []
 
     trips_collection = _get_trips_collection(user_id)
-    trips_results = trips_collection.query(
-        query_embeddings=[question_embedding],
-        n_results=4,
-    )
-    trip_docs = trips_results.get("documents", [[]])[0]
+    trips_count = trips_collection.count()
+    logger.info("RAG | trips collection=%s | doc_count=%d", trips_collection.name, trips_count)
 
-    # Step 3: Fetch Quick Overall Stats
+    if trips_count > 0:
+        trips_results = trips_collection.query(
+            query_embeddings=[question_embedding],
+            n_results=min(4, trips_count),
+        )
+        trip_docs = trips_results.get("documents", [[]])[0]
+        logger.info("RAG | trip docs returned: %s", trip_docs)
+    else:
+        trip_docs = []
+
+    # Step 3: Fetch Quick Overall Stats from SQL (source of truth)
     db = SessionLocal()
     try:
         histories = db.query(models.TripHistory).filter(models.TripHistory.user_id == user_id).all()
         total_trips = len(histories)
         total_miles = sum(h.total_miles or 0.0 for h in histories)
+
+        saved_trips_count = db.query(models.Trip).filter(models.Trip.user_id == user_id).count()
     except Exception as exc:
         logger.error("Failed to fetch stats for RAG: %s", exc)
         total_trips = 0
         total_miles = 0.0
+        saved_trips_count = 0
     finally:
         db.close()
+
+    logger.info("RAG | SQL truth: total_trips=%d, saved_trips=%d", total_trips, saved_trips_count)
+
+    # CRITICAL: If SQL has no data for this user, ChromaDB data is stale — ignore it.
+    # The SQL database is the source of truth. ChromaDB may contain orphaned vectors
+    # from a previous database wipe that was not synced to vector store.
+    if total_trips == 0 and saved_trips_count == 0:
+        # Purge stale ChromaDB data if any exists
+        if hist_count > 0:
+            logger.warning("RAG | Purging %d stale history vectors for user_id=%d", hist_count, user_id)
+            all_ids = hist_collection.get()["ids"]
+            if all_ids:
+                hist_collection.delete(ids=all_ids)
+        if trips_count > 0:
+            logger.warning("RAG | Purging %d stale trip vectors for user_id=%d", trips_count, user_id)
+            all_ids = trips_collection.get()["ids"]
+            if all_ids:
+                trips_collection.delete(ids=all_ids)
+
+        return {
+            "answer": "You haven't completed any trips yet. Once you save and launch routes, I'll be able to answer questions about your driving history!",
+            "sources_used": 0,
+        }
 
     if not hist_docs and not trip_docs and total_trips == 0:
         return {
