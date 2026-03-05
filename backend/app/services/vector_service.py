@@ -5,13 +5,13 @@ from typing import Any, Dict, List
 
 import chromadb  # pyright: ignore[reportMissingImports]
 from chromadb.config import Settings as ChromaSettings  # pyright: ignore[reportMissingImports]
-from sentence_transformers import SentenceTransformer  # pyright: ignore[reportMissingImports]
+from fastembed import TextEmbedding
 
 from app.config import settings
 
 
 # Load embedding model once at module import time (local, no API calls).
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embedding_model = TextEmbedding("BAAI/bge-small-en-v1.5")
 
 
 # Persistent ChromaDB client. Path is relative to where uvicorn is run (backend/).
@@ -58,7 +58,8 @@ def delete_user_collections(user_id: str) -> None:
 
 def embed(text: str) -> List[float]:
     """Return embedding vector for a single text string."""
-    return embedding_model.encode(text).tolist()
+    embeddings = list(embedding_model.embed([text]))
+    return embeddings[0].tolist()
 
 
 def add_stop(
