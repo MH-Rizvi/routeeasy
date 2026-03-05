@@ -23,6 +23,10 @@ class Settings(BaseSettings):
 
     google_maps_api_key: str | None = Field(default=None, env="GOOGLE_MAPS_API_KEY")
 
+    supabase_url: str = Field(default="", env="SUPABASE_URL")
+    supabase_anon_key: str = Field(default="", env="SUPABASE_ANON_KEY")
+    supabase_service_role_key: str = Field(default="", env="SUPABASE_SERVICE_ROLE_KEY")
+
     jwt_secret: str = ""
 
     database_url: str = Field(

@@ -20,17 +20,7 @@ if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
         connect_args={"check_same_thread": False},
     )
 else:
-    engine = create_engine(SQLALCHEMY_DATABASE_URL)
-
-
-@event.listens_for(Engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record) -> None:  # type: ignore[override]
-    """Enable SQLite foreign key cascades."""
-    if isinstance(dbapi_connection, sqlite3.Connection):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-
+    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"sslmode": "require"})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
