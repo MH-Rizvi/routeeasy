@@ -1,278 +1,163 @@
-from datetime import datetime
-
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from typing import Dict, Any
 
 from app.database import get_db
 from app import models, schemas
-from app.auth import (
-    get_password_hash,
-    verify_password,
-    create_access_token,
-    create_refresh_token,
-    get_current_user,
-    verify_token
-)
-from fastapi import Response, Request
+from app.auth import get_current_user
+from app.supabase_client import supabase
 
 router = APIRouter()
 
 
 @router.post("/signup", response_model=dict, status_code=status.HTTP_201_CREATED)
 async def signup(request: schemas.SignupRequest, response: Response, db: Session = Depends(get_db)):
-    """Register a new user and create their location profile."""
-    
-    # Check if user already exists
-    existing_user = db.query(models.User).filter(models.User.email == request.email).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
-        )
-    
-    # Hash password
-    hashed_password = get_password_hash(request.password)
-    
-    new_user = models.User(
-        email=request.email,
-        first_name=request.first_name,
-        last_name=request.last_name,
-        birthday=request.birthday,
-        password_hash=hashed_password
-    )
-    db.add(new_user)
-    db.flush()  # get new_user.id
-    
-    # Combine full location
-    full_loc = f"{request.city}, {request.state}"
-    
-    # Create UserProfile
-    new_profile = models.UserProfile(
-        user_id=new_user.id,
-        city=request.city,
-        state=request.state,
-        zip_code=request.zip_code,
-        full_location=full_loc
-    )
-    db.add(new_profile)
-    
+    """Register a new user via Supabase Auth and create their location profile."""
     try:
+        auth_res = supabase.auth.sign_up({
+            "email": request.email,
+            "password": request.password
+        })
+        
+        if not auth_res.user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Signup failed or email already registered"
+            )
+            
+        user_uuid = auth_res.user.id
+        full_loc = f"{request.city}, {request.state}"
+        
+        new_profile = models.UserProfile(
+            user_id=user_uuid,
+            city=request.city,
+            state=request.state,
+            zip_code=request.zip_code,
+            full_location=full_loc
+        )
+        db.add(new_profile)
         db.commit()
-    except IntegrityError:
+        db.refresh(new_profile)
+        
+        access_token = auth_res.session.access_token if auth_res.session else None
+        
+        return {
+            "access_token": access_token,
+            "user": {
+                "id": user_uuid,
+                "email": request.email,
+                "city": request.city,
+                "state": request.state,
+                "zip_code": request.zip_code,
+                "full_location": full_loc
+            }
+        }
+    except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Error creating user profile",
+            detail=str(e)
         )
-        
-    db.refresh(new_user)
-    db.refresh(new_profile)
-    
-    # Generate tokens
-    access_token = create_access_token(new_user.id)
-    refresh_token = create_refresh_token(new_user.id)
-    
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=False,        # set True in production
-        samesite="lax",
-        max_age=7 * 24 * 60 * 60  # 7 days
-    )
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": {
-            "id": new_user.id,
-            "first_name": new_user.first_name or "",
-            "last_name": new_user.last_name or "",
-            "birthday": new_user.birthday,
-            "email": new_user.email,
-            "city": new_profile.city,
-            "state": new_profile.state,
-            "zip_code": new_profile.zip_code,
-            "full_location": new_profile.full_location
-        }
-    }
 
 
 @router.post("/login", response_model=dict)
 async def login(request: schemas.LoginRequest, response: Response, db: Session = Depends(get_db)):
-    """Login and get access and refresh tokens."""
-    
-    user = db.query(models.User).filter(models.User.email == request.email).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
-        )
+    """Login via Supabase Auth and fetch profile."""
+    try:
+        auth_res = supabase.auth.sign_in_with_password({
+            "email": request.email,
+            "password": request.password
+        })
         
-    if not verify_password(request.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
-        )
+        if not auth_res.user or not auth_res.session:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password",
+            )
+            
+        user_uuid = auth_res.user.id
         
-    # Update last login
-    user.last_login = datetime.utcnow()
-    db.commit()
-    
-    # Generate tokens
-    access_token = create_access_token(user.id)
-    refresh_token = create_refresh_token(user.id)
-    
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=False,        # set True in production
-        samesite="lax",
-        max_age=7 * 24 * 60 * 60  # 7 days
-    )
-    
-    profile = user.profile
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": {
-            "id": user.id,
-            "first_name": user.first_name or "",
-            "last_name": user.last_name or "",
-            "birthday": user.birthday,
-            "email": user.email,
-            "city": profile.city if profile else "",
-            "state": profile.state if profile else "",
-            "zip_code": profile.zip_code if profile else "",
-            "full_location": profile.full_location if profile else ""
+        profile = db.query(models.UserProfile).filter(models.UserProfile.user_id == user_uuid).first()
+        
+        return {
+            "access_token": auth_res.session.access_token,
+            "refresh_token": auth_res.session.refresh_token,
+            "user": {
+                "id": user_uuid,
+                "email": request.email,
+                "city": profile.city if profile else "",
+                "state": profile.state if profile else "",
+                "zip_code": profile.zip_code if profile else "",
+                "full_location": profile.full_location if profile else ""
+            }
         }
-    }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e)
+        )
 
 
-@router.post("/refresh", response_model=schemas.TokenResponse)
-async def refresh(request: Request, response: Response):
-    """Get a new access token using a valid refresh token from cookie."""
-    refresh_token = request.cookies.get("refresh_token")
+@router.post("/google", response_model=dict)
+async def google_login():
+    """Get Google OAuth URL via Supabase."""
+    try:
+        auth_res = supabase.auth.sign_in_with_oauth({
+            "provider": "google",
+            "options": {"redirect_to": "http://localhost:5173"}
+        })
+        return {"url": auth_res.url}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post("/refresh", response_model=dict)
+async def refresh(request: Request):
+    """Get a new access token using a refresh token."""
+    try:
+        body = await request.json()
+        refresh_token = body.get("refresh_token")
+    except Exception:
+        refresh_token = request.cookies.get("refresh_token")
+        
+    if not refresh_token:
+        refresh_token = request.cookies.get("refresh_token")
+        
     if not refresh_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token missing",
         )
         
-    user_id = verify_token(refresh_token, token_type="refresh")
-    
-    new_access_token = create_access_token(user_id)
-    new_refresh_token = create_refresh_token(user_id)
-    
-    response.set_cookie(
-        key="refresh_token",
-        value=new_refresh_token,
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=7 * 24 * 60 * 60
-    )
-    
-    return schemas.TokenResponse(
-        access_token=new_access_token,
-        token_type="bearer"
-    )
-
-@router.post("/logout")
-async def logout(response: Response):
-    """Clear the refresh token cookie."""
-    response.delete_cookie("refresh_token")
-    return {"message": "Logged out successfully"}
-
-
-@router.get("/me", response_model=schemas.UserResponse)
-async def me(current_user: models.User = Depends(get_current_user)):
-    """Return the current logged-in user details."""
-    profile = current_user.profile
-    return schemas.UserResponse(
-        id=current_user.id,
-        first_name=current_user.first_name or "",
-        last_name=current_user.last_name or "",
-        birthday=current_user.birthday,
-        email=current_user.email,
-        city=profile.city if profile else "",
-        state=profile.state if profile else "",
-        zip_code=profile.zip_code if profile else "",
-        full_location=profile.full_location if profile else ""
-    )
-
-@router.patch("/profile", response_model=schemas.UserResponse)
-async def update_profile(
-    request: schemas.UpdateProfileRequest,
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Update user personal and location information."""
-    if request.first_name is not None:
-        current_user.first_name = request.first_name
-    if request.last_name is not None:
-        current_user.last_name = request.last_name
-    if request.birthday is not None:
-        current_user.birthday = request.birthday
-        
-    profile = current_user.profile
-    if profile:
-        if request.city is not None:
-            profile.city = request.city
-        if request.state is not None:
-            profile.state = request.state
-        if request.zip_code is not None:
-            profile.zip_code = request.zip_code
-        if request.city is not None or request.state is not None:
-            c = profile.city if request.city is None else request.city
-            s = profile.state if request.state is None else request.state
-            profile.full_location = f"{c}, {s}"
-            
-    db.commit()
-    db.refresh(current_user)
-    
-    return schemas.UserResponse(
-        id=current_user.id,
-        first_name=current_user.first_name or "",
-        last_name=current_user.last_name or "",
-        birthday=current_user.birthday,
-        email=current_user.email,
-        city=profile.city if profile else "",
-        state=profile.state if profile else "",
-        zip_code=profile.zip_code if profile else "",
-        full_location=profile.full_location if profile else ""
-    )
-
-
-@router.post("/change-password", response_model=dict)
-async def change_password(
-    request: schemas.ChangePasswordRequest,
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Change the user's password."""
-    if not verify_password(request.current_password, current_user.password_hash):
+    try:
+        auth_res = supabase.auth.refresh_session(refresh_token)
+        if not auth_res.session:
+             raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token",
+            )
+        return {"access_token": auth_res.session.access_token}
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect current password",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e)
         )
-        
-    current_user.password_hash = get_password_hash(request.new_password)
-    db.commit()
-    return {"message": "Password changed successfully"}
 
 
-@router.delete("/account", response_model=dict)
-async def delete_account(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Delete a user account and all completely associated data."""
-    db.delete(current_user)
-    db.commit()
-    return {"message": "Account deleted successfully"}
-
+@router.get("/me", response_model=dict)
+async def me(current_user: Any = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Return the current user's profile based on the validated Supabase access token."""
+    profile = db.query(models.UserProfile).filter(models.UserProfile.user_id == current_user.id).first()
+    
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "city": profile.city if profile else "",
+        "state": profile.state if profile else "",
+        "zip_code": profile.zip_code if profile else "",
+        "full_location": profile.full_location if profile else ""
+    }
