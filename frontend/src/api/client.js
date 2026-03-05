@@ -280,6 +280,11 @@ export const getMe = async () => {
     return data;
 };
 
+export const checkEmail = async (email) => {
+    const { data } = await api.post('/auth/check-email', { email });
+    return data.exists;
+};
+
 // ─────────────────────────────────────────────
 // Stats
 // ─────────────────────────────────────────────

@@ -9,6 +9,8 @@ from pydantic import BaseModel, ConfigDict
 
 # ----- User / Auth schemas -----
 
+class EmailCheckRequest(BaseModel):
+    email: str
 
 class SignupRequest(BaseModel):
     first_name: str

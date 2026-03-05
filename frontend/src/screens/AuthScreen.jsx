@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login, signup, loginWithGoogle } from '../api/client';
+import { login, signup, loginWithGoogle, checkEmail } from '../api/client';
 import { supabase } from '../supabaseClient';
 import useAuthStore from '../store/authStore';
 import useToastStore from '../store/toastStore';
@@ -24,6 +24,7 @@ export default function AuthScreen() {
 
     const [mode, setMode] = useState('login'); // 'login' | 'signup'
     const [signupStep, setSignupStep] = useState(1); // 1: Creds, 2: Location, 3: Personal
+    const [showVerification, setShowVerification] = useState(false); // email verification screen
 
     // Forms
     const [firstName, setFirstName] = useState('');
@@ -38,6 +39,22 @@ export default function AuthScreen() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [checkingEmail, setCheckingEmail] = useState(false);
+    const [emailExists, setEmailExists] = useState(false);
+
+    const handleEmailBlur = async () => {
+        if (!email || mode !== 'signup') return;
+        setCheckingEmail(true);
+        setError('');
+        try {
+            const exists = await checkEmail(email);
+            setEmailExists(exists);
+        } catch (err) {
+            console.error('Error checking email:', err);
+        } finally {
+            setCheckingEmail(false);
+        }
+    };
 
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
@@ -61,6 +78,10 @@ export default function AuthScreen() {
     const handleGoogleLogin = async () => {
         try {
             setLoading(true);
+            // Clear any stale session to prevent PKCE code verifier mismatches
+            // on subsequent login attempts if the first one was abandoned.
+            await supabase.auth.signOut();
+
             // Initiate OAuth directly from the frontend so the JS SDK 
             // can handle the PKCE code verifier automatically.
             const { data, error } = await supabase.auth.signInWithOAuth({
@@ -81,6 +102,7 @@ export default function AuthScreen() {
         e.preventDefault();
         setError('');
         if (!firstName || !lastName || !email || !password || !confirmPassword) return setError('All fields required.');
+        if (emailExists) return setError('Email already exists. Please sign in instead.');
         if (password !== confirmPassword) return setError('Passwords do not match.');
         if (password.length < 8) return setError('Password must be at least 8 characters.');
         setSignupStep(2);
@@ -102,6 +124,14 @@ export default function AuthScreen() {
         try {
             const finalBirthday = skip ? null : (birthday || null);
             const data = await signup(firstName, lastName, finalBirthday, email, password, city, stateInput, String(zipCode));
+
+            // If email verification is required, show confirmation screen
+            if (data.requires_verification) {
+                setShowVerification(true);
+                setLoading(false);
+                return;
+            }
+
             setUser(data.user);
             showToast('Account created successfully!', 'success');
             navigate('/home', { replace: true });
@@ -245,133 +275,178 @@ export default function AuthScreen() {
                                 </button>
                             </form>
                         )}
-
                         {mode === 'signup' && (
                             <>
-                                {/* Polished Step Indicators */}
-                                <div className="flex items-center justify-center gap-3 mb-8">
-                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-[13px] font-bold border-2 transition-all duration-300 ${signupStep >= 1 ? 'bg-accent border-accent text-white shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-transparent border-white/[0.1] text-white/30'}`}>
-                                        1
-                                    </div>
-                                    <div className={`w-8 sm:w-12 h-[2px] rounded-full transition-all duration-300 ${signupStep >= 2 ? 'bg-accent/50' : 'bg-white/[0.06]'}`} />
-                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-[13px] font-bold border-2 transition-all duration-300 ${signupStep >= 2 ? 'bg-accent border-accent text-white shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-transparent border-white/[0.1] text-white/30'}`}>
-                                        2
-                                    </div>
-                                    <div className={`w-8 sm:w-12 h-[2px] rounded-full transition-all duration-300 ${signupStep === 3 ? 'bg-accent/50' : 'bg-white/[0.06]'}`} />
-                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-[13px] font-bold border-2 transition-all duration-300 ${signupStep === 3 ? 'bg-accent border-accent text-white shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-transparent border-white/[0.1] text-white/30'}`}>
-                                        3
-                                    </div>
-                                </div>
-
-                                {signupStep === 1 && (
-                                    <form onSubmit={handleSignupStep1} className="flex flex-col gap-4">
-                                        <div className="flex flex-col sm:flex-row gap-4">
-                                            <div className="space-y-1.5 flex-1">
-                                                <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">First Name</label>
-                                                <input type="text" required className="w-full px-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-                                            </div>
-                                            <div className="space-y-1.5 flex-1">
-                                                <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">Last Name</label>
-                                                <input type="text" required className="w-full px-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-                                            </div>
+                                {showVerification ? (
+                                    <div className="flex flex-col items-center text-center py-8">
+                                        <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center border border-green-500/20 mb-6">
+                                            <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">Email</label>
-                                            <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40"><Icons.Mail /></div>
-                                                <input type="email" required className="w-full pl-12 pr-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" placeholder="driver@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">Password</label>
-                                            <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40"><Icons.Lock /></div>
-                                                <input type="password" required className="w-full pl-12 pr-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">Confirm Password</label>
-                                            <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40"><Icons.Lock /></div>
-                                                <input type="password" required className="w-full pl-12 pr-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-                                            </div>
-                                        </div>
-                                        <button type="submit" className="mt-4 w-full flex items-center justify-center gap-2 bg-accent text-white py-3.5 px-4 rounded-xl font-bold shadow-[0_4px_20px_rgba(245,158,11,0.25)] hover:bg-amber-500 transition-all active:scale-[0.98] min-h-touch text-[16px]">
-                                            Next Step →
+                                        <h3 className="text-2xl font-bold text-white mb-3">Account created!</h3>
+                                        <p className="text-white/60 mb-8 leading-relaxed">
+                                            Please check your email and click the verification link to continue.
+                                        </p>
+                                        <button
+                                            onClick={() => {
+                                                setShowVerification(false);
+                                                setMode('login');
+                                            }}
+                                            className="w-full bg-white/[0.05] border border-white/[0.1] text-white py-3.5 px-4 rounded-xl font-bold hover:bg-white/[0.1] transition-all active:scale-[0.98] min-h-touch text-[16px]"
+                                        >
+                                            Return to login
                                         </button>
-                                    </form>
-                                )}
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* Polished Step Indicators */}
+                                        <div className="flex items-center justify-center gap-3 mb-8">
+                                            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-[13px] font-bold border-2 transition-all duration-300 ${signupStep >= 1 ? 'bg-accent border-accent text-white shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-transparent border-white/[0.1] text-white/30'}`}>
+                                                1
+                                            </div>
+                                            <div className={`w-8 sm:w-12 h-[2px] rounded-full transition-all duration-300 ${signupStep >= 2 ? 'bg-accent/50' : 'bg-white/[0.06]'}`} />
+                                            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-[13px] font-bold border-2 transition-all duration-300 ${signupStep >= 2 ? 'bg-accent border-accent text-white shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-transparent border-white/[0.1] text-white/30'}`}>
+                                                2
+                                            </div>
+                                            <div className={`w-8 sm:w-12 h-[2px] rounded-full transition-all duration-300 ${signupStep === 3 ? 'bg-accent/50' : 'bg-white/[0.06]'}`} />
+                                            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-[13px] font-bold border-2 transition-all duration-300 ${signupStep === 3 ? 'bg-accent border-accent text-white shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-transparent border-white/[0.1] text-white/30'}`}>
+                                                3
+                                            </div>
+                                        </div>
 
-                                {signupStep === 2 && (
-                                    <form onSubmit={handleSignupStep2} className="flex flex-col gap-5">
-                                        <p className="text-[14px] text-white/50 text-center mb-2">Set your default routing start location.</p>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">State</label>
-                                            <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40"><Icons.MapPin /></div>
-                                                <select
-                                                    required
-                                                    className="w-full pl-12 pr-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors appearance-none cursor-pointer"
-                                                    value={stateInput}
-                                                    onChange={(e) => { setStateInput(e.target.value); setCity(''); }}
-                                                >
-                                                    <option value="" className="bg-[#111827] text-white/50">Select a state...</option>
-                                                    {US_STATES.map(s => (
-                                                        <option key={s.abbr} value={s.abbr} className="bg-[#111827] text-white">
-                                                            {s.name} ({s.abbr})
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/30">
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+                                        {signupStep === 1 && (
+                                            <form onSubmit={handleSignupStep1} className="flex flex-col gap-4">
+                                                <div className="flex flex-col sm:flex-row gap-4">
+                                                    <div className="space-y-1.5 flex-1">
+                                                        <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">First Name</label>
+                                                        <input type="text" required className="w-full px-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                                                    </div>
+                                                    <div className="space-y-1.5 flex-1">
+                                                        <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">Last Name</label>
+                                                        <input type="text" required className="w-full px-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">City</label>
-                                            <CityAutocomplete
-                                                value={city}
-                                                onChange={setCity}
-                                                stateAbbr={stateInput}
-                                                inputClassName="w-full pl-12 pr-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                                className="relative"
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">Zip Code <span className="text-white/30 normal-case">(optional)</span></label>
-                                            <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40"><Icons.Hash /></div>
-                                                <input type="text" inputMode="numeric" maxLength={5} className="w-full pl-12 pr-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" placeholder="11801" value={zipCode} onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setZipCode(v); }} />
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-3 mt-4">
-                                            <button type="button" onClick={() => setSignupStep(1)} disabled={loading} className="w-1/3 flex items-center justify-center gap-2 bg-white/[0.03] border border-white/[0.08] text-white hover:bg-white/[0.08] py-3.5 px-4 rounded-xl font-bold transition-all active:scale-[0.98] min-h-touch text-[16px] disabled:opacity-50">
-                                                Back
-                                            </button>
-                                            <button type="submit" disabled={loading || !city} className="flex-1 flex items-center justify-center gap-2 bg-white/[0.08] text-white py-3.5 px-4 rounded-xl font-bold hover:bg-white/[0.12] transition-all active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 min-h-touch text-[16px]">
-                                                Next Step →
-                                            </button>
-                                        </div>
-                                    </form>
-                                )}
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">Email</label>
+                                                    <div className="relative">
+                                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40"><Icons.Mail /></div>
+                                                        <input
+                                                            type="email" required
+                                                            className={`w-full pl-12 pr-12 py-3.5 bg-black/20 border rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 min-h-touch text-[16px] transition-colors ${emailExists ? 'border-red-500/50 focus:ring-red-500/50 focus:border-red-500' : 'border-white/[0.08] focus:ring-accent/50 focus:border-accent'}`}
+                                                            placeholder="driver@example.com"
+                                                            value={email}
+                                                            onChange={(e) => { setEmail(e.target.value); setEmailExists(false); }}
+                                                            onBlur={handleEmailBlur}
+                                                        />
+                                                        <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                                                            {checkingEmail ? (
+                                                                <Icons.Loader2 className="w-5 h-5 text-white/50" />
+                                                            ) : emailExists ? (
+                                                                <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                            ) : email && !emailExists ? (
+                                                                <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                                            ) : null}
+                                                        </div>
+                                                    </div>
+                                                    {emailExists && (
+                                                        <p className="text-red-400 text-[12px] pl-1 mt-1">
+                                                            Email already exists. <button type="button" onClick={() => { setMode('login'); setEmailExists(false); }} className="underline font-bold hover:text-red-300">Sign in instead</button>
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">Password</label>
+                                                    <div className="relative">
+                                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40"><Icons.Lock /></div>
+                                                        <input type="password" required className="w-full pl-12 pr-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">Confirm Password</label>
+                                                    <div className="relative">
+                                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40"><Icons.Lock /></div>
+                                                        <input type="password" required className="w-full pl-12 pr-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                                                    </div>
+                                                </div>
+                                                <button type="submit" className="mt-4 w-full flex items-center justify-center gap-2 bg-accent text-white py-3.5 px-4 rounded-xl font-bold shadow-[0_4px_20px_rgba(245,158,11,0.25)] hover:bg-amber-500 transition-all active:scale-[0.98] min-h-touch text-[16px]">
+                                                    Next Step →
+                                                </button>
+                                            </form>
+                                        )}
 
-                                {signupStep === 3 && (
-                                    <form onSubmit={(e) => handleSignupStep3(e, false)} className="flex flex-col gap-5">
-                                        <p className="text-[14px] text-white/50 text-center mb-2">Almost there! Add a bit more detail (Optional).</p>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">Birthday</label>
-                                            <input type="date" className="w-full px-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
-                                        </div>
-                                        <div className="flex gap-3 mt-4">
-                                            <button type="button" onClick={(e) => handleSignupStep3(e, true)} disabled={loading} className="w-1/3 flex items-center justify-center gap-2 bg-white/[0.03] border border-white/[0.08] text-white/70 hover:text-white hover:bg-white/[0.08] py-3.5 px-4 rounded-xl font-bold transition-all active:scale-[0.98] min-h-touch text-[14px] disabled:opacity-50">
-                                                Skip
-                                            </button>
-                                            <button type="submit" disabled={loading} className="flex-1 flex items-center justify-center gap-2 bg-accent text-white py-3.5 px-4 rounded-xl font-bold shadow-[0_4px_20px_rgba(245,158,11,0.25)] hover:bg-amber-500 transition-all active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 min-h-touch text-[16px]">
-                                                {loading && <Icons.Loader2 className="w-5 h-5" />}
-                                                {loading ? 'Creating...' : 'Create Account'}
-                                            </button>
-                                        </div>
-                                    </form>
+                                        {signupStep === 2 && (
+                                            <form onSubmit={handleSignupStep2} className="flex flex-col gap-5">
+                                                <p className="text-[14px] text-white/50 text-center mb-2">Set your default routing start location.</p>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">State</label>
+                                                    <div className="relative">
+                                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40"><Icons.MapPin /></div>
+                                                        <select
+                                                            required
+                                                            className="w-full pl-12 pr-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors appearance-none cursor-pointer"
+                                                            value={stateInput}
+                                                            onChange={(e) => { setStateInput(e.target.value); setCity(''); }}
+                                                        >
+                                                            <option value="" className="bg-[#111827] text-white/50">Select a state...</option>
+                                                            {US_STATES.map(s => (
+                                                                <option key={s.abbr} value={s.abbr} className="bg-[#111827] text-white">
+                                                                    {s.name} ({s.abbr})
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/30">
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">City</label>
+                                                    <CityAutocomplete
+                                                        value={city}
+                                                        onChange={setCity}
+                                                        stateAbbr={stateInput}
+                                                        inputClassName="w-full pl-12 pr-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                                        className="relative"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">Zip Code <span className="text-white/30 normal-case">(optional)</span></label>
+                                                    <div className="relative">
+                                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40"><Icons.Hash /></div>
+                                                        <input type="text" inputMode="numeric" maxLength={5} className="w-full pl-12 pr-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" placeholder="11801" value={zipCode} onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setZipCode(v); }} />
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-3 mt-4">
+                                                    <button type="button" onClick={() => setSignupStep(1)} disabled={loading} className="w-1/3 flex items-center justify-center gap-2 bg-white/[0.03] border border-white/[0.08] text-white hover:bg-white/[0.08] py-3.5 px-4 rounded-xl font-bold transition-all active:scale-[0.98] min-h-touch text-[16px] disabled:opacity-50">
+                                                        Back
+                                                    </button>
+                                                    <button type="submit" disabled={loading || !city} className="flex-1 flex items-center justify-center gap-2 bg-white/[0.08] text-white py-3.5 px-4 rounded-xl font-bold hover:bg-white/[0.12] transition-all active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 min-h-touch text-[16px]">
+                                                        Next Step →
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        )}
+
+                                        {signupStep === 3 && (
+                                            <form onSubmit={(e) => handleSignupStep3(e, false)} className="flex flex-col gap-5">
+                                                <p className="text-[14px] text-white/50 text-center mb-2">Almost there! Add a bit more detail (Optional).</p>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[12px] font-semibold text-white/60 uppercase tracking-widest pl-1">Birthday</label>
+                                                    <input type="date" className="w-full px-4 py-3.5 bg-black/20 border border-white/[0.08] rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent min-h-touch text-[16px] transition-colors" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
+                                                </div>
+                                                <div className="flex gap-3 mt-4">
+                                                    <button type="button" onClick={(e) => handleSignupStep3(e, true)} disabled={loading} className="w-1/3 flex items-center justify-center gap-2 bg-white/[0.03] border border-white/[0.08] text-white/70 hover:text-white hover:bg-white/[0.08] py-3.5 px-4 rounded-xl font-bold transition-all active:scale-[0.98] min-h-touch text-[14px] disabled:opacity-50">
+                                                        Skip
+                                                    </button>
+                                                    <button type="submit" disabled={loading} className="flex-1 flex items-center justify-center gap-2 bg-accent text-white py-3.5 px-4 rounded-xl font-bold shadow-[0_4px_20px_rgba(245,158,11,0.25)] hover:bg-amber-500 transition-all active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 min-h-touch text-[16px]">
+                                                        {loading && <Icons.Loader2 className="w-5 h-5" />}
+                                                        {loading ? 'Creating...' : 'Create Account'}
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        )}
+                                    </>
                                 )}
                             </>
                         )}

@@ -40,6 +40,22 @@ def _get_history_collection(user_id: str):
     )
 
 
+def delete_user_collections(user_id: str) -> None:
+    """Completely delete all vector collections for a user during account deletion."""
+    try:
+        chroma_client.delete_collection(name=f"stops_{user_id}")
+    except Exception:
+        pass
+    try:
+        chroma_client.delete_collection(name=f"trips_{user_id}")
+    except Exception:
+        pass
+    try:
+        chroma_client.delete_collection(name=f"history_{user_id}")
+    except Exception:
+        pass
+
+
 def embed(text: str) -> List[float]:
     """Return embedding vector for a single text string."""
     return embedding_model.encode(text).tolist()

@@ -200,9 +200,8 @@ export default function AccountScreen() {
         setLoading(true);
         try {
             await deleteAccount();
-            useAuthStore.getState().setUser(null);
-            showToast('Account deleted', 'success');
-            navigate('/');
+            showToast('Account permanently deleted', 'success');
+            await logout();
         } catch {
             showToast('Failed to delete account', 'error');
             setLoading(false);

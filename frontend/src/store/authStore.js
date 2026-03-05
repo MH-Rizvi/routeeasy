@@ -37,6 +37,14 @@ const useAuthStore = create((set) => ({
             // Step 3: Fetch our backend profile
             const userData = await getMe();
             set({ user: userData, isAuthenticated: true, isHydrating: false });
+
+            // Redirect users with incomplete profiles to setup
+            if (userData.is_new_user) {
+                const path = window.location.pathname;
+                if (path !== '/complete-profile' && path !== '/auth/callback') {
+                    window.location.href = '/complete-profile';
+                }
+            }
         } catch (error) {
             console.error('[AuthStore] Hydration failed:', error);
             set({ user: null, isAuthenticated: false, isHydrating: false });

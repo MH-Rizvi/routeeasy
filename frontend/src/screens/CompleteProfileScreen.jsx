@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { updateProfile, getMe } from '../api/client';
+import { updateProfile, getMe, logout } from '../api/client';
 import useAuthStore from '../store/authStore';
 import useToastStore from '../store/toastStore';
 import US_STATES from '../utils/usStates';
@@ -166,6 +166,18 @@ export default function CompleteProfileScreen() {
                             {loading ? 'Creating Profile...' : 'Complete Profile'}
                         </button>
                     </form>
+
+                    <div className="mt-8 text-center">
+                        <p className="text-white/50 text-[14px]">
+                            Use a different account?
+                            <button
+                                onClick={logout}
+                                className="text-accent font-semibold hover:text-amber-400 py-1 transition-colors min-h-touch ml-1"
+                            >
+                                Sign out
+                            </button>
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

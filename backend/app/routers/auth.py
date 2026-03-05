@@ -32,22 +32,49 @@ async def signup(request: schemas.SignupRequest, response: Response, db: Session
         
         new_profile = models.UserProfile(
             user_id=user_uuid,
+            first_name=request.first_name,
+            last_name=request.last_name,
+            birthday=request.birthday,
             city=request.city,
             state=request.state,
             zip_code=request.zip_code,
             full_location=full_loc
         )
-        db.add(new_profile)
-        db.commit()
-        db.refresh(new_profile)
+        try:
+            db.add(new_profile)
+            db.commit()
+            db.refresh(new_profile)
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="An account with this email already exists. Please sign in instead."
+            )
         
-        access_token = auth_res.session.access_token if auth_res.session else None
+        # If email confirmation is enabled in Supabase, session will be None.
+        # The user's identities list will also be empty until they confirm.
+        requires_verification = (
+            auth_res.session is None or 
+            not getattr(auth_res.user, 'identities', None)
+        )
+        
+        if requires_verification:
+            return {
+                "message": "Please check your email to verify your account before logging in.",
+                "requires_verification": True,
+                "user": {
+                    "id": user_uuid,
+                    "email": request.email,
+                }
+            }
         
         return {
-            "access_token": access_token,
+            "access_token": auth_res.session.access_token,
             "user": {
                 "id": user_uuid,
                 "email": request.email,
+                "first_name": request.first_name,
+                "last_name": request.last_name,
                 "city": request.city,
                 "state": request.state,
                 "zip_code": request.zip_code,
@@ -60,6 +87,22 @@ async def signup(request: schemas.SignupRequest, response: Response, db: Session
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+
+
+@router.post("/check-email", response_model=dict)
+async def check_email(request: schemas.EmailCheckRequest):
+    """Check if an email is already registered using the admin client."""
+    try:
+        # supabase is initialized with service_role_key in supabase_client.py 
+        # so we have admin access to list users.
+        users = supabase.auth.admin.list_users()
+        # users is a list of User objects
+        exists = any(u.email.lower() == request.email.lower() for u in users)
+        return {"exists": exists}
+    except Exception as e:
+        print(f"Error checking email: {e}")
+        # Default to false so we don't block signup on a weird API error
+        return {"exists": False}
 
 
 @router.post("/login", response_model=dict)
@@ -152,37 +195,61 @@ async def refresh(request: Request):
 @router.get("/me", response_model=dict)
 async def me(current_user: Any = Depends(get_current_user), db: Session = Depends(get_db)):
     """Return the current user's profile based on the validated Supabase access token."""
-    profile = db.query(models.UserProfile).filter(models.UserProfile.user_id == current_user.id).first()
-    
-    # Implicitly handle new Google/OAuth signups by creating a blank profile if it doesn't exist
-    if not profile:
-        profile = models.UserProfile(
-            user_id=str(current_user.id),
-            first_name=current_user.user_metadata.get("full_name", "").split(" ")[0] if current_user.user_metadata else "",
-            last_name=" ".join(current_user.user_metadata.get("full_name", "").split(" ")[1:]) if current_user.user_metadata else "",
-            city="Set your city",
-            state="??",
-            zip_code="00000",
-            full_location="Update your location"
+    try:
+        profile = db.query(models.UserProfile).filter(models.UserProfile.user_id == current_user.id).first()
+        
+        if not profile:
+            # If no profile exists, this is a new Google/OAuth user who hasn't 
+            # finished onboarding. Send a clean response with is_new_user: True
+            # so the frontend knows to route them to /complete-profile.
+            return {
+                "id": str(current_user.id),
+                "email": current_user.email,
+                "first_name": None,
+                "last_name": None,
+                "city": None,
+                "state": None,
+                "zip_code": None,
+                "is_new_user": True
+            }
+        
+        # Consider a user "new" (needs onboarding) if they have no city or state set,
+        # or if it's the default placeholder value.
+        is_new = (
+            not profile.city or 
+            not profile.state or 
+            profile.city == "Set your city" or 
+            profile.city.strip() == "" or
+            profile.state.strip() == "??" or
+            profile.state.strip() == ""
         )
-        db.add(profile)
-        db.commit()
-        db.refresh(profile)
-    
-    is_new = profile.city == "Set your city"
-    
-    return {
-        "id": str(current_user.id),
-        "email": current_user.email,
-        "first_name": profile.first_name,
-        "last_name": profile.last_name,
-        "birthday": profile.birthday,
-        "city": profile.city,
-        "state": profile.state,
-        "zip_code": profile.zip_code,
-        "full_location": profile.full_location,
-        "is_new_user": is_new
-    }
+        
+        return {
+            "id": str(current_user.id),
+            "email": current_user.email,
+            "first_name": profile.first_name,
+            "last_name": profile.last_name,
+            "birthday": profile.birthday,
+            "city": profile.city,
+            "state": profile.state,
+            "zip_code": profile.zip_code,
+            "full_location": profile.full_location,
+            "is_new_user": is_new
+        }
+    except Exception as e:
+        print(f"Error fetching profile for {current_user.id}: {e}")
+        # Fallback response for ANY error so we don't return a 500 
+        # and cause an infinite login loop on the frontend.
+        return {
+            "id": str(current_user.id),
+            "email": current_user.email,
+            "first_name": None,
+            "last_name": None,
+            "city": None,
+            "state": None,
+            "zip_code": None,
+            "is_new_user": True
+        }
 
 
 class ProfileUpdate(BaseModel):
@@ -227,3 +294,34 @@ async def update_profile(request: ProfileUpdate, current_user: Any = Depends(get
         "full_location": profile.full_location,
         "is_new_user": False
     }
+
+
+@router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_account(current_user: Any = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Permanently delete user account and all associated data."""
+    try:
+        user_uuid = str(current_user.id)
+        
+        # 1. Purge all vector embeddings mapped to this user
+        from app.services import vector_service
+        vector_service.delete_user_collections(user_uuid)
+        
+        # 2. Hard delete all related database rows
+        # (Order matters to prevent foreign key issues if cascades aren't fully configured)
+        db.query(models.Stop).filter(models.Stop.user_id == user_uuid).delete()
+        db.query(models.TripHistory).filter(models.TripHistory.user_id == user_uuid).delete()
+        db.query(models.Trip).filter(models.Trip.user_id == user_uuid).delete()
+        db.query(models.LLMLog).filter(models.LLMLog.user_id == user_uuid).delete()
+        db.query(models.UserProfile).filter(models.UserProfile.user_id == user_uuid).delete()
+        db.commit()
+
+        # 3. Destroy account from Supabase Auth completely (using the service role admin key)
+        res = supabase.auth.admin.delete_user(user_uuid)
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error during account deletion: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to delete account from system."
+        )
