@@ -93,7 +93,10 @@ function AppShell() {
         location.pathname === '/' ||
         location.pathname === '/complete-profile' ||
         location.pathname === '/auth/callback';
+
     const hydrate = useAuthStore((state) => state.hydrate);
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const isHydrating = useAuthStore((state) => state.isHydrating);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -118,7 +121,17 @@ function AppShell() {
                     <Route path="/login" element={<AuthScreen />} />
                     <Route path="/auth/callback" element={<AuthCallbackScreen />} />
                     <Route path="/complete-profile" element={<CompleteProfileScreen />} />
-                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/" element={
+                        isHydrating ? (
+                            <div className="min-h-screen bg-base flex flex-col items-center justify-center">
+                                <div className="w-10 h-10 border-4 border-accent/20 border-t-accent rounded-full animate-spin"></div>
+                            </div>
+                        ) : isAuthenticated ? (
+                            <Navigate to="/home" replace />
+                        ) : (
+                            <LandingPage />
+                        )
+                    } />
 
                     <Route element={<ProtectedRoute />}>
                         <Route path="/home" element={<HomeScreen />} />
