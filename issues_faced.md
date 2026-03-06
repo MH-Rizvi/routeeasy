@@ -250,3 +250,18 @@ The frontend correctly intercepted and hydrated the session. However, on the bac
 1. **Local JWT Verification:** Completely stripped the `supabase.auth.get_user(token)` remote network call from the fast-path authentication dependency.
 2. **Zero-Latency Decoding:** Switched to decoding the JWT entirely locally on the backend server using the `python-jose` library (`jwt.decode()`).
 3. **Injected JWT Secret:** Used `SUPABASE_JWT_SECRET` pulled from environment variables (`app/config.py`) and standard `HS256` symmetric signing to securely parse and implicitly validate the JWT payload (`sub` and `email`), converting it into a local `AuthUser` class replica without incurring network latency or remote provider rejection.
+
+## Issue 16: Initial API Call Failing Due to Asynchronous Auth Hydration
+**Phase:** Core Authentication / Frontend State
+**Date Identified:** March 6, 2026
+**Severity:** HIGH (Intermittent Login Loops / Flash of Unauthenticated Screen)
+
+### Description
+Immediately after the user logged in, the application redirected to the Home screen but the initial batch of API calls (`/trips`, `/history`) occasionally returned `401 Unauthorized`, kicking the user back out. This happened despite the credentials being perfectly valid and the backend 401 bug (Issue 15) being resolved.
+
+### Root Cause Analysis
+A race condition existed between Supabase JS's asynchronous local storage writes and the React tree mounting the `HomeScreen`. When `login()` succeeded, it called `supabase.auth.setSession()`, which writes to local storage asynchronously. However, the frontend `AuthScreen` immediately called `navigate('/home')` before this write finished. The `HomeScreen` instantly fired outbound Axios requests. The Axios request interceptor called `supabase.auth.getSession()` to grab the token, but because the storage write was actively pending, it returned `null`. The requests fired lacking the `Authorization: Bearer` header, which the backend rightfully rejected. 
+
+### Resolution Implemented
+1. **Interceptor Breather Wait-State:** Updated the Axios request interceptor in `api/client.js`. If the interceptor finds `session?.access_token` to be null on the first attempt, it intentionally forces a `500ms` asynchronous wait (`await new Promise(r => setTimeout(r, 500))`) before retrying the `getSession()` call. This allows pending Supabase storage writes to safely resolve before dispatching the outbound HTTP packet.
+2. **Explicit Token Passing via Zustand:** Refactored `authStore.js` and `AuthScreen.jsx` so that the `login()` and `signup()` API responses directly return the extracted raw `access_token` and pass it synchronously into the Zustand `setUser(data.user, data.access_token)` mapper immediately prior to navigation, eliminating the frontend's reliance on asynchronous `supabase.auth.getSession()` for core React hydration states.

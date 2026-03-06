@@ -64,7 +64,7 @@ export default function AuthScreen() {
         setLoading(true);
         try {
             const data = await login(email, password);
-            setUser(data.user);
+            setUser(data.user, data.access_token);
             navigate('/home', { replace: true });
         } catch (err) {
             console.error(err);
@@ -132,7 +132,7 @@ export default function AuthScreen() {
                 return;
             }
 
-            setUser(data.user);
+            setUser(data.user, data.access_token);
             showToast('Account created successfully!', 'success');
             navigate('/home', { replace: true });
         } catch (err) {

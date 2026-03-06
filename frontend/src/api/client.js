@@ -25,7 +25,13 @@ const api = axios.create({
 api.interceptors.request.use(async (config) => {
     try {
         const { supabase } = await import('../supabaseClient');
-        const { data: { session } } = await supabase.auth.getSession();
+        let { data: { session } } = await supabase.auth.getSession();
+
+        if (!session?.access_token) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const retrySession = await supabase.auth.getSession();
+            session = retrySession.data.session;
+        }
 
         if (session?.access_token) {
             config.headers.Authorization = `Bearer ${session.access_token}`;
