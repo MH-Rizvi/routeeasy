@@ -3,5 +3,10 @@
         "watchPatterns": [
             "backend/**"
         ]
+    },
+    "deploy": {
+        "watchPatterns": [
+            "backend/**"
+        ]
     }
 }
