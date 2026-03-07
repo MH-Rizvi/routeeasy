@@ -8,6 +8,9 @@ from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_user
 from app.supabase_client import supabase
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -100,7 +103,7 @@ async def check_email(request: schemas.EmailCheckRequest):
         exists = any(u.email.lower() == request.email.lower() for u in users)
         return {"exists": exists}
     except Exception as e:
-        print(f"Error checking email: {e}")
+        # print(f"Error checking email: {e}")
         # Default to false so we don't block signup on a weird API error
         return {"exists": False}
 
@@ -237,7 +240,7 @@ async def me(current_user: Any = Depends(get_current_user), db: Session = Depend
             "is_new_user": is_new
         }
     except Exception as e:
-        print(f"Error fetching profile for {current_user.id}: {e}")
+        # print(f"Error fetching profile for {current_user.id}: {e}")
         # Fallback response for ANY error so we don't return a 500 
         # and cause an infinite login loop on the frontend.
         return {
@@ -317,10 +320,11 @@ async def delete_account(current_user: Any = Depends(get_current_user), db: Sess
 
         # 3. Destroy account from Supabase Auth completely (using the service role admin key)
         res = supabase.auth.admin.delete_user(user_uuid)
+        logger.info(f"User account deleted successfully: {user_uuid}")
         
     except Exception as e:
         db.rollback()
-        print(f"Error during account deletion: {e}")
+        # print(f"Error during account deletion: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Failed to delete account from system."

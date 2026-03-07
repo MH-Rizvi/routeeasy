@@ -14,6 +14,7 @@ from app.agent import core as agent_service
 from app.auth import get_current_user
 from app.database import get_db
 from app.services import moderation_service
+from app.rate_limit import limiter
 
 
 logger = logging.getLogger(__name__)
@@ -37,8 +38,10 @@ def _check_demo_rate(ip: str) -> bool:
 
 
 @router.post("/agent/chat", response_model=schemas.AgentChatResponse)
+@limiter.limit("100/hour")
 async def chat(
     request: schemas.AgentChatRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: Any = Depends(get_current_user),
 ) -> schemas.AgentChatResponse:

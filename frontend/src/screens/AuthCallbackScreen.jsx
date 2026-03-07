@@ -23,19 +23,19 @@ export default function AuthCallbackScreen() {
     const hasHandled = useRef(false);
 
     useEffect(() => {
-        console.log('[Callback] Component mounted');
-        console.log('[Callback] URL:', window.location.href);
+        // console.log('[Callback] Component mounted');
+        // console.log('[Callback] URL:', window.location.href);
 
         const handleSession = async (session) => {
             if (hasHandled.current) return;
             hasHandled.current = true;
 
-            console.log('[Callback] Processing session. Token length:', session.access_token?.length);
+            // console.log('[Callback] Processing session. Token length:', session.access_token?.length);
 
             try {
                 // Call backend to get/create user profile
                 const userData = await getMe();
-                console.log('[Callback] Backend profile:', userData);
+                // console.log('[Callback] Backend profile:', userData);
 
                 // Push user into zustand store
                 setUser(userData);
@@ -56,7 +56,7 @@ export default function AuthCallbackScreen() {
 
         // === Strategy 1: Listen for auth state change ===
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            console.log('[Callback] onAuthStateChange event:', event, '| session:', !!session);
+            // console.log('[Callback] onAuthStateChange event:', event, '| session:', !!session);
             if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
                 handleSession(session);
             }
@@ -65,9 +65,9 @@ export default function AuthCallbackScreen() {
         // === Strategy 2: Direct check after 1.5s (fallback) ===
         const fallback = setTimeout(async () => {
             if (hasHandled.current) return;
-            console.log('[Callback] Fallback: checking getSession directly...');
+            // console.log('[Callback] Fallback: checking getSession directly...');
             const { data: { session } } = await supabase.auth.getSession();
-            console.log('[Callback] Fallback getSession result:', !!session);
+            // console.log('[Callback] Fallback getSession result:', !!session);
             if (session) {
                 handleSession(session);
             }

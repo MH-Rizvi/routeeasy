@@ -239,6 +239,7 @@ async def delete_trip(db: Session, trip_id: int, user_id: str) -> bool:
 
     db.delete(trip)
     db.commit()
+    logger.info("Trip deleted successfully: trip_id=%s, user_id=%s", trip_id, user_id)
     return True
 
 
