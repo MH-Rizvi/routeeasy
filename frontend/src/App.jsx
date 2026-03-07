@@ -258,20 +258,22 @@ function AppShell() {
             {/* Main content area — shifts right on desktop when sidebar is visible */}
             <main className={`flex-1 flex flex-col overflow-y-auto ${hideTabBar ? '' : 'pb-safe-tabbar lg:pb-0'} ${showSidebar ? 'lg:ml-64' : ''}`}>
                 <Routes>
-                    <Route path="/login" element={<AuthScreen />} />
-                    <Route path="/signup" element={<AuthScreen />} />
+                    <Route path="/login" element={<div key={location.pathname} className="page-transition"><AuthScreen /></div>} />
+                    <Route path="/signup" element={<div key={location.pathname} className="page-transition"><AuthScreen /></div>} />
                     <Route path="/auth/callback" element={<AuthCallbackScreen />} />
                     <Route path="/complete-profile" element={<CompleteProfileScreen />} />
                     <Route path="/" element={
-                        isHydrating ? (
-                            <div className="min-h-screen bg-base flex flex-col items-center justify-center">
-                                <div className="w-10 h-10 border-4 border-accent/20 border-t-accent rounded-full animate-spin"></div>
-                            </div>
-                        ) : isAuthenticated ? (
-                            <Navigate to="/home" replace />
-                        ) : (
-                            <LandingPage />
-                        )
+                        <div key={location.pathname} className="page-transition">
+                            {isHydrating ? (
+                                <div className="min-h-screen bg-base flex flex-col items-center justify-center">
+                                    <div className="w-10 h-10 border-4 border-accent/20 border-t-accent rounded-full animate-spin"></div>
+                                </div>
+                            ) : isAuthenticated ? (
+                                <Navigate to="/home" replace />
+                            ) : (
+                                <LandingPage />
+                            )}
+                        </div>
                     } />
 
                     <Route element={<ProtectedRoute />}>

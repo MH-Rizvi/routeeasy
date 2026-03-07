@@ -158,7 +158,7 @@ export default function AuthScreen() {
     };
 
     return (
-        <div className="flex flex-col md:flex-row min-h-screen bg-base text-white animate-page-enter">
+        <div className="flex flex-col md:flex-row min-h-screen bg-base text-white">
 
             {/* Back Navigation */}
             <button
