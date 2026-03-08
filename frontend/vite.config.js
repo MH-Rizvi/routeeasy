@@ -8,6 +8,11 @@ export default defineConfig({
         strictPort: true,
         open: true,
         host: true, // Listen on all local IPs
+        hmr: {
+            protocol: 'ws',
+            host: 'localhost',
+            port: 5173,
+        },
         proxy: {
             '/api': {
                 target: 'http://192.168.1.168:8000',

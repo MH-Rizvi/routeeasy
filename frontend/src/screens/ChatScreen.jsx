@@ -49,7 +49,7 @@ export default function ChatScreen() {
     };
 
     return (
-        <div className="flex flex-col flex-1 w-full relative animate-page-enter lg:flex-row h-full lg:overflow-hidden">
+        <div className="chat-container flex flex-col flex-1 w-full relative animate-page-enter lg:flex-row h-full lg:overflow-hidden">
             {/* ── Desktop Left Panel: Prompts ── */}
             <div className="hidden lg:flex flex-col w-72 shrink-0 h-full overflow-y-auto relative z-10" style={{ background: 'rgba(13,17,23,0.75)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRight: '1px solid rgba(255,255,255,0.04)' }}>
                 {/* Panel header */}
@@ -118,8 +118,7 @@ export default function ChatScreen() {
 
                 {/* Messages area — fills all remaining space */}
                 <div
-                    className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-5 lg:px-8 py-4 flex flex-col relative z-10"
-                    style={{ WebkitOverflowScrolling: 'touch' }}
+                    className="messages-container px-4 sm:px-5 lg:px-8 py-4 flex flex-col relative z-10 flex-1 min-h-0 overflow-y-auto"
                 >
                     {messages.length === 0 && !loading && (
                         <div className="flex flex-col items-center justify-center h-full text-center animate-fade-up max-w-md mx-auto lg:max-w-lg select-none">
@@ -218,7 +217,7 @@ export default function ChatScreen() {
                     <div ref={scrollRef} />
                 </div>
 
-                <div className="relative z-10 shrink-0">
+                <div className="chat-input-wrapper relative z-10 shrink-0">
                     <ChatInput onSend={sendMessage} loading={loading} />
                 </div>
             </div>

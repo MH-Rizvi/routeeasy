@@ -79,12 +79,48 @@
     .pb-safe-tabbar {
         padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)) !important;
     }
+
+    .chat-wrapper {
+        padding-bottom: 0px !important;
+    }
+
+    .messages-container {
+        padding-bottom: 160px !important;
+    }
+
+    .chat-input-wrapper {
+        bottom: 60px;
+        /* height of bottom nav bar */
+        position: relative;
+    }
 }
 
 @media (min-width: 1024px) {
     .pb-safe-tabbar {
         padding-bottom: 0px !important;
     }
+
+    .chat-wrapper {
+        padding-bottom: 0px !important;
+    }
+
+    .messages-container {
+        padding-bottom: 0px !important;
+    }
+}
+
+.chat-container {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.messages-container {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    min-height: 0;
 }
 
 .bottom-safe-fab {

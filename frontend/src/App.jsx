@@ -261,7 +261,7 @@ function AppShell() {
             {showSidebar && <DesktopSidebar />}
             {/* Main content area — shifts right on desktop when sidebar is visible */}
             <main
-                className={`flex-1 flex flex-col ${isChat ? 'overflow-hidden' : 'overflow-y-auto'} ${hideTabBar ? '' : 'pb-safe-tabbar lg:pb-0'} ${showSidebar ? 'lg:ml-64' : ''}`}
+                className={`flex-1 flex flex-col overflow-y-auto ${isChat ? 'chat-wrapper pb-0' : hideTabBar ? '' : 'pb-safe-tabbar lg:pb-0'} ${showSidebar ? 'lg:ml-64' : ''}`}
                 style={isChat ? {} : { WebkitOverflowScrolling: 'touch' }}
             >
                 <Routes>
