@@ -14,13 +14,24 @@ export default function MessageBubble({ role, content, timestamp, routeStops, on
                 </div>
             )}
 
-            <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${isUser
-                ? 'rounded-br-md'
-                : 'rounded-bl-md'
+            <div className={`max-w-[80%] rounded-2xl px-4 py-3 relative ${isUser
+                ? 'rounded-br-[4px]'
+                : 'rounded-bl-[4px]'
                 }`}
                 style={isUser
-                    ? { background: 'linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(30,41,59,0.5) 100%)', border: '1px solid rgba(245,158,11,0.2)', backdropFilter: 'blur(8px)' }
-                    : { background: 'linear-gradient(135deg, rgba(30,41,59,0.5) 0%, rgba(13,17,23,0.8) 100%)', borderLeft: '2px solid #F59E0B', border: '1px solid rgba(255,255,255,0.05)', borderLeftWidth: '2px', borderLeftColor: '#F59E0B', backdropFilter: 'blur(8px)' }
+                    ? {
+                        background: 'linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(245,158,11,0.05) 100%)',
+                        border: '1px solid rgba(245,158,11,0.25)',
+                        backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+                        boxShadow: '0 4px 15px rgba(245,158,11,0.08)'
+                    }
+                    : {
+                        background: 'rgba(13,17,23,0.6)',
+                        border: '1px solid rgba(255,255,255,0.05)',
+                        borderLeft: '3px solid rgba(245,158,11,0.6)',
+                        backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+                    }
                 }
             >
                 <p className="text-base text-text-primary whitespace-pre-wrap break-words leading-relaxed">

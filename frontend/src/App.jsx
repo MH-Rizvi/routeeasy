@@ -69,7 +69,7 @@ function DesktopSidebar() {
 
     return (
         <>
-            <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-64 z-50" style={{ background: '#0F172A', borderRight: '1px solid rgba(245,158,11,0.15)' }}>
+            <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-64 z-50" style={{ background: 'rgba(13,17,23,0.75)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRight: '1px solid rgba(245,158,11,0.15)' }}>
                 {/* ── Logo ── */}
                 <div className="px-5 pt-6 pb-5 cursor-pointer group" onClick={() => navigate('/home')}>
                     <div className="flex items-center gap-2.5">
@@ -81,7 +81,7 @@ function DesktopSidebar() {
                         </div>
                         <div style={{ fontFamily: "'DM Sans', sans-serif" }} className="text-[22px] leading-none flex items-baseline tracking-tight">
                             <span className="text-white font-extrabold">Rout</span>
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-500 to-amber-600 font-extrabold ml-[1px]">Aura</span>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-300 to-amber-600 font-extrabold ml-[1px] logo-shimmer">Aura</span>
                         </div>
                     </div>
                 </div>
@@ -101,15 +101,16 @@ function DesktopSidebar() {
                                 to={tab.path}
                                 className="relative flex items-center gap-3 px-4 py-3 rounded-xl text-[14px] font-medium transition-all duration-200 group"
                                 style={isActive ? {
-                                    background: 'rgba(245,158,11,0.08)',
+                                    background: 'linear-gradient(90deg, rgba(245,158,11,0.12) 0%, transparent 100%)',
                                     color: '#F59E0B',
                                     borderLeft: '4px solid #F59E0B',
+                                    boxShadow: 'inset 4px 0 10px -4px rgba(245,158,11,0.5)',
                                 } : {
                                     color: '#94A3B8',
                                     borderLeft: '4px solid transparent',
                                 }}
                             >
-                                <div className={`transition-all duration-300 ${isActive ? 'drop-shadow-[0_0_6px_rgba(245,158,11,0.5)]' : 'group-hover:text-white'}`}>
+                                <div className={`transition-all duration-300 ${isActive ? 'drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]' : 'group-hover:text-white group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]'}`}>
                                     {tab.icon}
                                 </div>
                                 <span className={`${isActive ? '' : 'group-hover:text-white'} transition-colors`}>{tab.label}</span>
@@ -125,7 +126,8 @@ function DesktopSidebar() {
                 {user && (
                     <div className="p-4">
                         <div className="flex items-center gap-3 mb-3">
-                            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #1a1a2e, #0d0d1a)', border: '2px solid rgba(245,158,11,0.3)', boxShadow: '0 0 8px rgba(245,158,11,0.15)' }}>
+                            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 relative" style={{ background: 'linear-gradient(135deg, #1a1a2e, #0d0d1a)', border: '1px solid rgba(245,158,11,0.4)', zIndex: 1 }}>
+                                <div className="absolute inset-0 rounded-lg animate-pulse pointer-events-none" style={{ boxShadow: '0 0 12px rgba(245,158,11,0.5)' }} />
                                 <span className="text-[#F59E0B] text-[13px] font-extrabold">{initials}</span>
                             </div>
                             <div className="min-w-0 flex-1">
