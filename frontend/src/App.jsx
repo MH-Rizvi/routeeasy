@@ -253,12 +253,15 @@ function AppShell() {
     }, [hydrate]);
 
     return (
-        <div className="flex h-screen overflow-hidden relative">
+        <div className="flex h-[100dvh] lg:overflow-hidden relative">
             <Toast />
             {/* Desktop sidebar — only on authenticated screens */}
             {showSidebar && <DesktopSidebar />}
             {/* Main content area — shifts right on desktop when sidebar is visible */}
-            <main className={`flex-1 flex flex-col overflow-y-auto ${hideTabBar ? '' : 'pb-safe-tabbar lg:pb-0'} ${showSidebar ? 'lg:ml-64' : ''}`}>
+            <main
+                className={`flex-1 flex flex-col overflow-y-auto ${hideTabBar ? '' : 'pb-safe-tabbar lg:pb-0'} ${showSidebar ? 'lg:ml-64' : ''}`}
+                style={{ WebkitOverflowScrolling: 'touch' }}
+            >
                 <Routes>
                     <Route path="/login" element={<div key={location.pathname} className="page-transition"><AuthScreen /></div>} />
                     <Route path="/signup" element={<div key={location.pathname} className="page-transition"><AuthScreen /></div>} />
