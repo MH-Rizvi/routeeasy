@@ -88,7 +88,7 @@ export default function HomeScreen() {
                                 <div className="w-full h-full rounded-[23px] p-6 lg:p-8 flex items-center justify-between" style={{ background: 'linear-gradient(135deg, rgba(13,17,23,0.95) 0%, rgba(30,41,59,0.6) 100%)', backdropFilter: 'blur(20px)' }}>
                                     <div>
                                         <h2 className="text-white font-bold text-[22px] lg:text-[26px] tracking-tight mb-1">Plan a Route</h2>
-                                        <p className="text-text-muted text-[13px] lg:text-[15px]">Powered by RouteAura AI</p>
+                                        <p className="text-text-muted text-[13px] lg:text-[15px]">Powered by RoutAura AI</p>
                                     </div>
                                     <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center relative">
                                         <div className="absolute inset-0 bg-accent/20 animate-ping rounded-full" />

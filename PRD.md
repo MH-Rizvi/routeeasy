@@ -1,5 +1,5 @@
 # Product Requirements Document (PRD)
-## RouteAura — Agentic AI Trip Planner for Bus Drivers
+## RoutAura — Agentic AI Trip Planner for Bus Drivers
 ### Portfolio Showcase Edition — Built for GenAI / Agentic AI Engineer Roles
 
 **Version:** 2.0  
@@ -14,10 +14,10 @@
 School bus drivers and professional drivers manually re-enter the same routes and stops into Google Maps every single day. There is no tool that lets them describe a route in plain language, save it permanently, and re-launch it with a single tap. Existing tools require exact addresses and have zero memory of past trips.
 
 ### 1.2 Solution
-RouteAura is a Progressive Web App powered by a **LangChain-orchestrated AI agent** that lets drivers describe their trips in plain, conversational language. The agent uses specialised tools to geocode stops, perform semantic similarity search against saved trips, and answer natural language questions about trip history via a RAG pipeline. Every saved stop and trip is embedded and stored in **ChromaDB**, enabling intelligent fuzzy recall — so saying "the usual school run" retrieves the right saved trip automatically, even if those exact words were never used. Trips are additionally saved to **Supabase PostgreSQL** for structured relational storage.
+RoutAura is a Progressive Web App powered by a **LangChain-orchestrated AI agent** that lets drivers describe their trips in plain, conversational language. The agent uses specialised tools to geocode stops, perform semantic similarity search against saved trips, and answer natural language questions about trip history via a RAG pipeline. Every saved stop and trip is embedded and stored in **ChromaDB**, enabling intelligent fuzzy recall — so saying "the usual school run" retrieves the right saved trip automatically, even if those exact words were never used. Trips are additionally saved to **Supabase PostgreSQL** for structured relational storage.
 
 ### 1.3 Why This Is a True Agentic AI System
-RouteAura is not a chatbot that calls an LLM and formats the output. It is a **true agentic AI system** where the LLM reasons about which tools to call, in what order, based on the driver's intent — and loops until the task is complete. This mirrors production Agentic AI engineering patterns found in enterprise systems.
+RoutAura is not a chatbot that calls an LLM and formats the output. It is a **true agentic AI system** where the LLM reasons about which tools to call, in what order, based on the driver's intent — and loops until the task is complete. This mirrors production Agentic AI engineering patterns found in enterprise systems.
 
 The agent reasoning chain for a typical request:
 ```
@@ -202,7 +202,7 @@ Before any user message reaches the LangChain agent, it passes through a lightwe
 
 This project demonstrates every required and nice-to-have skill from the target job description:
 
-| Job Description Requirement | RouteAura Implementation |
+| Job Description Requirement | RoutAura Implementation |
 |-----------------------------|--------------------------|
 | Strong Python | Entire backend in Python 3.12+ |
 | LLM experience (Anthropic, OpenAI, HuggingFace) | Groq API (Llama 3.3 70b) via LangChain; Fastembed ONNX embeddings |

@@ -1,6 +1,6 @@
 {
-    "name": "RouteAura",
-    "short_name": "RouteAura",
+    "name": "RoutAura",
+    "short_name": "RoutAura",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#0F172A",

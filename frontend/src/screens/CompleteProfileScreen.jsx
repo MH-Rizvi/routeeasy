@@ -63,7 +63,7 @@ export default function CompleteProfileScreen() {
             const fullUser = await getMe();
             setUser(fullUser);
 
-            showToast('Welcome to RouteAura! Your profile is complete.', 'success');
+            showToast('Welcome to RoutAura! Your profile is complete.', 'success');
             navigate('/home', { replace: true });
         } catch (err) {
             console.error('[CompleteProfile] Profile update failed:', err);
@@ -78,7 +78,7 @@ export default function CompleteProfileScreen() {
             <div className="w-full max-w-[520px] py-12">
                 <div className="text-center mb-10">
                     <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center border border-white/[0.08] shadow-[0_4px_20px_rgba(245,158,11,0.2)] bg-amber-500/10 mx-auto mb-6">
-                        <img src="/logo3_nobg.png" alt="RouteAura Logo" className="w-[140%] h-[140%] max-w-none object-cover" />
+                        <img src="/logo3_nobg.png" alt="RoutAura Logo" className="w-[140%] h-[140%] max-w-none object-cover" />
                     </div>
                     <h1 className="text-3xl font-bold bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent mb-2">Almost there, Driver.</h1>
                     <p className="text-white/40 text-lg font-medium">Please finish setting up your account.</p>

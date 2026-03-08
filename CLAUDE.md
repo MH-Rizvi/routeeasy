@@ -1,11 +1,11 @@
-# CLAUDE.md — RouteAura v2.0
+# CLAUDE.md — RoutAura v2.0
 ## Context File for AI Coding Agents (Claude Code, Cursor, etc.)
 
 ---
 
 ## What This Project Is
 
-**RouteAura** is a Progressive Web App for bus and professional drivers. Drivers describe their routes in plain conversational language, a **LangChain ReAct agent** orchestrates the AI logic (geocoding, vector search, semantic recall), and the app launches navigation in Google Maps or Apple Maps. Trips are saved to both SQLite and ChromaDB for structured retrieval and semantic fuzzy recall.
+**RoutAura** is a Progressive Web App for bus and professional drivers. Drivers describe their routes in plain conversational language, a **LangChain ReAct agent** orchestrates the AI logic (geocoding, vector search, semantic recall), and the app launches navigation in Google Maps or Apple Maps. Trips are saved to both SQLite and ChromaDB for structured retrieval and semantic fuzzy recall.
 
 This project is simultaneously a **useful real-world app** and a **portfolio showcase** for GenAI / Agentic AI engineering roles. Every architectural decision is intentional and maps to skills in the target job descriptions (LangChain, ChromaDB, RAG, LLMOps, Responsible AI).
 
@@ -17,7 +17,7 @@ This project is simultaneously a **useful real-world app** and a **portfolio sho
 ## Project Structure
 
 ```
-RouteAura/
+RoutAura/
 ├── frontend/          # React 18 + Vite + Tailwind CSS PWA
 ├── backend/           # FastAPI + Python (LangChain agent + all AI services)
 ├── PRD.md

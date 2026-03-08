@@ -1,4 +1,4 @@
-# RouteAura — Security & Production Readiness Test Plan
+# RoutAura — Security & Production Readiness Test Plan
 
 This document defines 30 security checks derived from AI vibe coding security rules. The agent must audit every item, report PASS / FAIL / N/A with evidence, and fix every FAIL before marking the item complete.
 
@@ -77,12 +77,12 @@ This document defines 30 security checks derived from AI vibe coding security ru
 ### #12 — CORS Locked to Production Domain Only
 **Test:** Verify `CORS_ORIGINS` environment variable on Railway contains only the production Vercel URL.
 **Check:** Read `backend/app/main.py` CORSMiddleware configuration. Verify `settings.cors_origins` does not contain wildcards.
-**Expected:** Only `https://routeaura.vercel.app` (and optionally `http://localhost:5173` for dev). No `*` wildcard.
+**Expected:** Only `https://routaura.vercel.app` (and optionally `http://localhost:5173` for dev). No `*` wildcard.
 
 ### #13 — Redirect URL Validation
 **Test:** Verify OAuth redirect URLs are locked to allowed domains in Supabase.
 **Check:** Supabase Dashboard → Authentication → URL Configuration → Redirect URLs allowlist.
-**Expected:** Only `https://routeaura.vercel.app/**` and `http://localhost:5173/**` listed.
+**Expected:** Only `https://routaura.vercel.app/**` and `http://localhost:5173/**` listed.
 
 ---
 
@@ -118,16 +118,16 @@ This document defines 30 security checks derived from AI vibe coding security ru
 ## Data & Storage Security
 
 ### #19 — Storage Bucket Permissions (N/A)
-**Status:** N/A — RouteAura has no file upload or storage bucket functionality.
+**Status:** N/A — RoutAura has no file upload or storage bucket functionality.
 
 ### #20 — File Upload Validation (N/A)
-**Status:** N/A — RouteAura has no file upload functionality.
+**Status:** N/A — RoutAura has no file upload functionality.
 
 ### #21 — Webhook Signature Verification (N/A)
-**Status:** N/A — RouteAura has no payment webhooks.
+**Status:** N/A — RoutAura has no payment webhooks.
 
 ### #22 — Email Provider SPF/DKIM (N/A)
-**Status:** N/A — RouteAura uses Supabase's built-in email service for auth emails.
+**Status:** N/A — RoutAura uses Supabase's built-in email service for auth emails.
 
 ---
 

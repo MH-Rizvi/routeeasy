@@ -1,6 +1,6 @@
 /**
  * LandingPage.jsx — Premium landing page with auto-playing agent demo.
- * RouteAura: AI-powered route planning for drivers.
+ * RoutAura: AI-powered route planning for drivers.
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -197,7 +197,7 @@ function AutoDemoChat() {
                     <img src="/logo3_nobg.png" alt="AI Agent" className="w-[140%] h-[140%] max-w-none object-cover rounded-full" />
                 </div>
                 <div>
-                    <p className="text-white text-[13px] font-semibold tracking-tight">RouteAura AI Agent</p>
+                    <p className="text-white text-[13px] font-semibold tracking-tight">RoutAura AI Agent</p>
                     <p className="text-emerald-400 text-[11px] flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
                         Online
@@ -326,7 +326,7 @@ function StepOneAnimation() {
             {phase === 'typing' && (
                 <div className="flex items-center gap-1.5 mt-1" style={{ animation: 'hiw-fade-in 0.4s ease' }}>
                     <span className="w-[6px] h-[6px] rounded-full bg-amber-400" style={{ animation: 'hiw-dot-pulse 1.2s ease-in-out infinite' }} />
-                    <span className="text-[10px] text-amber-400/60">RouteAura AI is listening...</span>
+                    <span className="text-[10px] text-amber-400/60">RoutAura AI is listening...</span>
                 </div>
             )}
 
@@ -711,11 +711,11 @@ export default function LandingPage() {
     ];
 
     const FAQ_DATA = [
-        { q: 'Is RouteAura free to use?', a: 'Yes, completely free. No credit card required. Sign up and start planning routes in under 2 minutes.' },
-        { q: 'Does it work on my phone?', a: 'Yes. RouteAura is a Progressive Web App (PWA) optimised for iOS Safari and Android Chrome. Add it to your home screen for a native app experience.' },
+        { q: 'Is RoutAura free to use?', a: 'Yes, completely free. No credit card required. Sign up and start planning routes in under 2 minutes.' },
+        { q: 'Does it work on my phone?', a: 'Yes. RoutAura is a Progressive Web App (PWA) optimised for iOS Safari and Android Chrome. Add it to your home screen for a native app experience.' },
         { q: 'Do I need to type exact addresses?', a: 'No. That\'s the whole point. Say "the co-op", "main school", or "morning run" and the AI figures out the rest using your saved location history.' },
         { q: 'What if I drive the same route every day?', a: 'Save it once, re-launch it with one tap. The agent recognises "do my usual run" and retrieves the right route automatically via semantic search.' },
-        { q: 'How is this different from just using Google Maps?', a: 'Google Maps has no memory of your routes, no natural language input, and forces you to re-enter every stop manually every single day. RouteAura remembers everything.' },
+        { q: 'How is this different from just using Google Maps?', a: 'Google Maps has no memory of your routes, no natural language input, and forces you to re-enter every stop manually every single day. RoutAura remembers everything.' },
         { q: 'Is my data private?', a: 'Yes. All your trips and stops are isolated to your account using Supabase PostgreSQL with per-user data partitioning. No data is shared between users.' },
     ];
 
@@ -734,9 +734,9 @@ export default function LandingPage() {
                     {/* Logo */}
                     <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex items-center gap-2.5 group shrink-0">
                         <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.15)] bg-[#1E293B]/80 group-hover:scale-105 group-hover:border-amber-500/40 transition-all duration-300">
-                            <img src="/logo3_nobg.png" alt="RouteAura" className="w-[140%] h-[140%] max-w-none object-cover rounded-full" />
+                            <img src="/logo3_nobg.png" alt="RoutAura" className="w-[140%] h-[140%] max-w-none object-cover rounded-full" />
                         </div>
-                        <span className="text-[#F59E0B] font-bold text-lg tracking-tight">RouteAura</span>
+                        <span className="text-[#F59E0B] font-bold text-lg tracking-tight">RoutAura</span>
                     </a>
 
                     {/* Desktop — Centered glass pill nav */}
@@ -1212,7 +1212,7 @@ export default function LandingPage() {
 
 
             {/* ═══════════════════════════════════════
-                SECTION 7: WHY WE BUILT ROUTEAURA
+                SECTION 7: WHY WE BUILT ROUTAURA
                ═══════════════════════════════════════ */}
             <section className="py-20 lg:py-28 px-5 sm:px-8 relative z-[1] bg-[#0F172A]/30 border-y border-white/[0.04] overflow-hidden">
                 {/* Fork-in-the-road — old way vs new way */}
@@ -1244,12 +1244,12 @@ export default function LandingPage() {
                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                                 Our Story
                             </div>
-                            <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-bold mb-6 tracking-tight leading-tight">Why we built RouteAura.</h2>
+                            <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-bold mb-6 tracking-tight leading-tight">Why we built RoutAura.</h2>
                             <p className="text-white text-base lg:text-lg leading-relaxed mb-5">
                                 Bus drivers and professional drivers spend minutes every morning doing the same thing — opening Google Maps, searching each stop one by one, and rebuilding the same route they drove yesterday. For a school bus driver with 10 stops, that's wasted time every single day.
                             </p>
                             <p className="text-white text-base lg:text-lg leading-relaxed">
-                                RouteAura fixes that. Describe your route <strong className="text-[#F59E0B] font-bold">once in plain English</strong> — or just say 'my usual morning run' — and the AI handles the rest. It remembers your stops, recalls your saved routes, and launches Google Maps with everything pre-loaded. One conversation. Zero rebuilding.
+                                RoutAura fixes that. Describe your route <strong className="text-[#F59E0B] font-bold">once in plain English</strong> — or just say 'my usual morning run' — and the AI handles the rest. It remembers your stops, recalls your saved routes, and launches Google Maps with everything pre-loaded. One conversation. Zero rebuilding.
                             </p>
                         </RevealOnScroll>
 
@@ -1356,7 +1356,7 @@ export default function LandingPage() {
                             Roadmap
                         </div>
                         <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 tracking-tight">What&apos;s coming next</h2>
-                        <p className="text-base sm:text-lg" style={{ color: '#94A3B8' }}>RouteAura is just getting started.</p>
+                        <p className="text-base sm:text-lg" style={{ color: '#94A3B8' }}>RoutAura is just getting started.</p>
                     </RevealOnScroll>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
@@ -1476,9 +1476,9 @@ export default function LandingPage() {
                         <div className="col-span-2 sm:col-span-1">
                             <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex items-center gap-2.5 mb-4 group">
                                 <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center border border-white/[0.1] shadow-[0_0_15px_rgba(245,158,11,0.15)] bg-white/[0.03] group-hover:scale-105 transition-transform duration-300">
-                                    <img src="/logo3_nobg.png" alt="RouteAura" className="w-[140%] h-[140%] max-w-none object-cover rounded-full" />
+                                    <img src="/logo3_nobg.png" alt="RoutAura" className="w-[140%] h-[140%] max-w-none object-cover rounded-full" />
                                 </div>
-                                <span className="text-[#F59E0B] font-bold text-xl">RouteAura</span>
+                                <span className="text-[#F59E0B] font-bold text-xl">RoutAura</span>
                             </a>
                             <p className="text-white/30 text-[13px] leading-relaxed">AI-powered routing for drivers.<br />Describe your route. Drive in seconds.</p>
                         </div>
@@ -1515,7 +1515,7 @@ export default function LandingPage() {
                     </div>
 
                     <div className="border-t border-white/[0.06] pt-6 text-center">
-                        <p className="text-white/20 text-[12px]">© 2026 RouteAura. Built for drivers, powered by AI.</p>
+                        <p className="text-white/20 text-[12px]">© 2026 RoutAura. Built for drivers, powered by AI.</p>
                     </div>
                 </div>
             </footer>

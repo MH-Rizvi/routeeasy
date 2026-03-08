@@ -1,4 +1,4 @@
-const CACHE_NAME = 'routeaura-v1';
+const CACHE_NAME = 'routaura-v1';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',

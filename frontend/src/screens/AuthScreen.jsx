@@ -179,16 +179,16 @@ export default function AuthScreen() {
                 <div className="relative z-10 max-w-md">
                     <div className="flex items-center gap-4 mb-8">
                         <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-white/[0.03]" style={{ border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 0 20px rgba(245,158,11,0.2)' }}>
-                            <img src="/logo3_nobg.png" alt="RouteAura" className="w-[140%] h-[140%] max-w-none object-cover rounded-full" />
+                            <img src="/logo3_nobg.png" alt="RoutAura" className="w-[140%] h-[140%] max-w-none object-cover rounded-full" />
                         </div>
-                        <span className="text-accent font-extrabold text-[40px] tracking-tight">RouteAura</span>
+                        <span className="text-accent font-extrabold text-[40px] tracking-tight">RoutAura</span>
                     </div>
                     <h2 className="text-[clamp(32px,4vw,48px)] font-bold leading-tight mb-6">
                         <span className="bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">Routing,</span><br />
                         <span className="text-accent">reimagined.</span>
                     </h2>
                     <p className="text-white/50 text-[16px] leading-relaxed mb-10 border-l-2 border-amber-500/30 pl-4">
-                        "Since switching to RouteAura, I've saved hours every week planning my drop-offs. The AI just knows where I need to go."
+                        "Since switching to RoutAura, I've saved hours every week planning my drop-offs. The AI just knows where I need to go."
                     </p>
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center text-[18px]">
@@ -208,9 +208,9 @@ export default function AuthScreen() {
                 <div className="md:hidden flex flex-col items-center mb-10 mt-14 relative z-10 pb-4">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
                     <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center border border-white/[0.08] shadow-[0_0_20px_rgba(245,158,11,0.2)] bg-white/[0.03] mb-4">
-                        <img src="/logo3_nobg.png" alt="RouteAura Logo" className="w-[150%] h-[150%] max-w-none object-cover rounded-full" />
+                        <img src="/logo3_nobg.png" alt="RoutAura Logo" className="w-[150%] h-[150%] max-w-none object-cover rounded-full" />
                     </div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-2">RouteAura</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-white mb-2">RoutAura</h1>
                 </div>
 
                 <div className="w-full max-w-[420px] relative z-10 pb-8">
@@ -220,7 +220,7 @@ export default function AuthScreen() {
                             {mode === 'login' ? 'Welcome back' : 'Create your account'}
                         </h2>
                         <p className="text-white/50 text-[15px]">
-                            {mode === 'login' ? 'Enter your details to sign in.' : 'Join RouteAura and start saving time.'}
+                            {mode === 'login' ? 'Enter your details to sign in.' : 'Join RoutAura and start saving time.'}
                         </p>
                     </div>
 

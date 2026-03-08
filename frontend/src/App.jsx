@@ -76,7 +76,7 @@ function DesktopSidebar() {
                         <div className="relative flex items-center justify-center">
                             <div className="absolute inset-0 bg-accent/30 blur-xl rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-500 mix-blend-screen" />
                             <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center relative z-10 transition-transform duration-500 group-hover:scale-105" style={{ border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 0 12px rgba(245,158,11,0.25)', background: 'rgba(255,255,255,0.03)' }}>
-                                <img src="/logo3_nobg.png" alt="RouteAura" className="w-[140%] h-[140%] max-w-none object-cover rounded-full" />
+                                <img src="/logo3_nobg.png" alt="RoutAura" className="w-[140%] h-[140%] max-w-none object-cover rounded-full" />
                             </div>
                         </div>
                         <div style={{ fontFamily: "'DM Sans', sans-serif" }} className="text-[22px] leading-none flex items-baseline tracking-tight">
@@ -159,9 +159,9 @@ function DesktopSidebar() {
                         style={{ animation: 'sidebarModalPop 0.3s cubic-bezier(0.16,1,0.3,1) forwards' }}
                     >
                         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1 rounded-b-full bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
-                        <img src="/logo3_nobg.png" alt="RouteAura" className="w-14 h-14 rounded-2xl object-cover mx-auto mb-5 border border-white/10 shadow-[0_0_20px_rgba(245,158,11,0.2)]" />
+                        <img src="/logo3_nobg.png" alt="RoutAura" className="w-14 h-14 rounded-2xl object-cover mx-auto mb-5 border border-white/10 shadow-[0_0_20px_rgba(245,158,11,0.2)]" />
                         <h3 className="text-xl font-extrabold text-white mb-2 tracking-tight">Sign Out</h3>
-                        <p className="text-[14px] text-white/50 mb-8 leading-relaxed">Are you sure you want to sign out of RouteAura?</p>
+                        <p className="text-[14px] text-white/50 mb-8 leading-relaxed">Are you sure you want to sign out of RoutAura?</p>
                         <div className="flex gap-3">
                             <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-3.5 bg-white/[0.04] border border-white/[0.1] rounded-xl font-bold text-white/80 text-[14px] hover:bg-white/[0.08] transition-all">Cancel</button>
                             <button onClick={handleLogout} className="flex-1 py-3.5 bg-red-500 rounded-xl font-bold text-white text-[14px] hover:bg-red-600 shadow-[0_4px_15px_rgba(239,68,68,0.3)] transition-all active:scale-[0.98]">Yes, Sign Out</button>

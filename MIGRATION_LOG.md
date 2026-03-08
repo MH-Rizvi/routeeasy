@@ -1,12 +1,12 @@
 # Technical Migration Log: SQLite + Custom JWT to Supabase
 
-This document details the complete migration of the routeaura backend infrastructure from a local, single-node SQLite stack to a cloud-native Supabase PostgreSQL and Supabase Auth implementation. This is designated as **Phase 20: Supabase Migration**.
+This document details the complete migration of the routaura backend infrastructure from a local, single-node SQLite stack to a cloud-native Supabase PostgreSQL and Supabase Auth implementation. This is designated as **Phase 20: Supabase Migration**.
 
 ---
 
 ## 1. What We Had Before (Original Stack)
-Initially, routeaura was built for rapid prototyping and local development validation:
-- **Relational Database**: A local `routeaura.db` file (SQLite) managed via SQLAlchemy.
+Initially, routaura was built for rapid prototyping and local development validation:
+- **Relational Database**: A local `routaura.db` file (SQLite) managed via SQLAlchemy.
 - **Vector Database**: A local `./chroma_db` dictionary for embedding semantic search.
 - **Authentication**: A custom JWT authentication system built completely from scratch:
   - `bcrypt` handled password hashing prior to SQL injection.
@@ -71,7 +71,7 @@ The local `.env` file requires population of four new attributes targeting the c
 4. `DATABASE_URL`: Formatted as `postgresql://...`, defining our unpooled standard DSN protocol string the SQLAlchemy worker attaches into.
 
 ## 6. Database Schema
-Executed manually via the Supabase Admin SQL Panel, these structured queries initialized the core routeaura schema on Postgres:
+Executed manually via the Supabase Admin SQL Panel, these structured queries initialized the core routaura schema on Postgres:
 
 ```sql
 -- User Profile metadata attached to the Root Supabase Auth system

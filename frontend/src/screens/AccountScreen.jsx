@@ -1,7 +1,7 @@
 /**
  * AccountScreen.jsx — Premium dashboard-style account management.
  * Two-column on desktop, single column on mobile.
- * Follows the dark/amber RouteAura design system.
+ * Follows the dark/amber RoutAura design system.
  */
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -517,9 +517,9 @@ export default function AccountScreen() {
                         {/* Subtle glow */}
                         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1 rounded-b-full bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
 
-                        <img src="/logo3_nobg.png" alt="RouteAura" className="w-14 h-14 rounded-2xl object-cover mx-auto mb-5 border border-white/10 shadow-[0_0_20px_rgba(245,158,11,0.2)]" />
+                        <img src="/logo3_nobg.png" alt="RoutAura" className="w-14 h-14 rounded-2xl object-cover mx-auto mb-5 border border-white/10 shadow-[0_0_20px_rgba(245,158,11,0.2)]" />
                         <h3 className="text-xl font-extrabold text-white mb-2 tracking-tight">Sign Out</h3>
-                        <p className="text-[14px] text-white/50 mb-8 leading-relaxed">Are you sure you want to sign out of RouteAura?</p>
+                        <p className="text-[14px] text-white/50 mb-8 leading-relaxed">Are you sure you want to sign out of RoutAura?</p>
                         <div className="flex gap-3">
                             <button onClick={() => setShowLogoutModal(false)} className="flex-1 py-3.5 bg-white/[0.04] border border-white/[0.1] rounded-xl font-bold text-white/80 text-[14px] hover:bg-white/[0.08] transition-all">Cancel</button>
                             <button onClick={handleLogout} className="flex-1 py-3.5 bg-red-500 rounded-xl font-bold text-white text-[14px] hover:bg-red-600 shadow-[0_4px_15px_rgba(239,68,68,0.3)] transition-all active:scale-[0.98]">Yes, Sign Out</button>

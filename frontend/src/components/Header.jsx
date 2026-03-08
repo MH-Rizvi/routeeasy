@@ -17,7 +17,7 @@ export default function Header({ rightElement }) {
                         <div className="w-[44px] h-[44px] sm:w-[54px] sm:h-[54px] rounded-full overflow-hidden flex items-center justify-center border border-white/10 shadow-[0_0_15px_rgba(245,158,11,0.3)] bg-white/[0.03] relative z-10 transition-transform duration-500 group-hover:scale-105 group-hover:rotate-6 mx-2 sm:mx-3">
                             <img
                                 src="/logo3_nobg.png"
-                                alt="RouteAura Icon"
+                                alt="RoutAura Icon"
                                 className="w-[140%] h-[140%] max-w-none object-cover rounded-full"
                             />
                         </div>

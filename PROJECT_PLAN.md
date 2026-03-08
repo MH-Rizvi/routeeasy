@@ -1,4 +1,4 @@
-# Project Plan — RouteAura v2.0
+# Project Plan — RoutAura v2.0
 ## Phased Task Breakdown (Agentic AI Edition)
 
 **Version:** 2.0  
@@ -14,7 +14,7 @@ Ship the agentic AI core first — it's the most impressive part for a showcase.
 ## Phase 0 — Project Setup
 *Goal: Skeleton running locally, both services start without errors.*
 
-- [ ] **T001** — Create monorepo: `RouteAura/frontend/` and `RouteAura/backend/`
+- [ ] **T001** — Create monorepo: `RoutAura/frontend/` and `RoutAura/backend/`
 - [ ] **T002** — Init React + Vite frontend: `npm create vite@latest frontend -- --template react`
 - [ ] **T003** — Install frontend deps: `react-router-dom tailwindcss zustand axios leaflet react-leaflet react-beautiful-dnd`
 - [ ] **T004** — Configure Tailwind CSS (`tailwind.config.js`, add directives to `index.css`)
