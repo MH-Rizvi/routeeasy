@@ -59,12 +59,15 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled error on %s %s: %s", request.method, request.url.path, exc)
     origin = request.headers.get("origin")
     headers = {}
-    if origin and (origin in settings.cors_origins or "*" in settings.cors_origins):
+    if origin:
+        # Always reflect back the requesting origin + credentials
+        # so the browser doesn't swallow the error silently
         headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
         
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal Server Error"},
+        content={"detail": str(exc)},
         headers=headers,
     )
 
