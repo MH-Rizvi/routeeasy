@@ -697,6 +697,7 @@ export default function LandingPage() {
     const [scrolled, setScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [openFaq, setOpenFaq] = useState(null);
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 50);
@@ -836,8 +837,8 @@ export default function LandingPage() {
                             strokeDasharray="12 28"
                             style={{ animation: 'hero-dash 3s linear infinite' }} />
 
-                        {/* Vehicles on main highway */}
-                        {[
+                        {/* Vehicles on main highway — desktop only */}
+                        {!isMobile && [
                             { dur: 10, del: 0, w: 14, h: 7, color: 'rgba(255,255,255,0.3)' },
                             { dur: 13, del: 3, w: 22, h: 8, color: 'rgba(245,158,11,0.4)' },
                             { dur: 11, del: 6, w: 14, h: 7, color: 'rgba(255,255,255,0.25)' },
@@ -856,13 +857,13 @@ export default function LandingPage() {
                             </g>
                         ))}
 
-                        {/* Vehicle on secondary road */}
-                        <g>
+                        {/* Vehicle on secondary road — desktop only */}
+                        {!isMobile && <g>
                             <rect x="-6" y="-3" width="12" height="6" rx="2" fill="rgba(255,255,255,0.18)">
                                 <animateMotion dur="14s" repeatCount="indefinite" begin="2s" rotate="auto"
                                     path="M 350 -20 C 380 150, 500 350, 650 550 S 780 650, 850 750" />
                             </rect>
-                        </g>
+                        </g>}
 
                         {/* Map pin markers at destinations */}
                         {[
@@ -870,17 +871,17 @@ export default function LandingPage() {
                             { cx: 620, cy: 340 },
                             { cx: 1000, cy: 230 },
                         ].map((pin, i) => (
-                            <g key={`pin-${i}`} style={{ animation: `hero-pin-bounce 3s ease-in-out ${i * 0.8}s infinite` }}>
+                            <g key={`pin-${i}`} style={!isMobile ? { animation: `hero-pin-bounce 3s ease-in-out ${i * 0.8}s infinite` } : undefined}>
                                 {/* Pin body */}
                                 <path d={`M ${pin.cx} ${pin.cy - 18} 
                                           a 8 8 0 1 1 0 0.01 Z 
                                           M ${pin.cx} ${pin.cy - 4} l -4 -8 h 8 Z`}
                                     fill="rgba(245,158,11,0.4)" stroke="rgba(245,158,11,0.6)" strokeWidth="0.8" />
-                                {/* Pulse ring */}
-                                <circle cx={pin.cx} cy={pin.cy} fill="none" stroke="rgba(245,158,11,0.3)" strokeWidth="1">
+                                {/* Pulse ring — desktop only */}
+                                {!isMobile && <circle cx={pin.cx} cy={pin.cy} fill="none" stroke="rgba(245,158,11,0.3)" strokeWidth="1">
                                     <animate attributeName="r" values="6;22" dur="2.5s" begin={`${i * 0.8}s`} repeatCount="indefinite" />
                                     <animate attributeName="opacity" values="0.5;0" dur="2.5s" begin={`${i * 0.8}s`} repeatCount="indefinite" />
-                                </circle>
+                                </circle>}
                             </g>
                         ))}
 
@@ -958,9 +959,9 @@ export default function LandingPage() {
                 <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1200 60" xmlns="http://www.w3.org/2000/svg" style={{ opacity: 0.4 }}>
                     <line x1="0" y1="30" x2="1200" y2="30" stroke="rgba(245,158,11,0.08)" strokeWidth="40" />
                     <line x1="0" y1="30" x2="1200" y2="30" stroke="rgba(245,158,11,0.15)" strokeWidth="1" strokeDasharray="20 30" style={{ animation: 'hero-dash 2s linear infinite' }} />
-                    <rect x="-8" y="26" width="16" height="8" rx="3" fill="rgba(245,158,11,0.3)">
+                    {!isMobile && <rect x="-8" y="26" width="16" height="8" rx="3" fill="rgba(245,158,11,0.3)">
                         <animateMotion dur="6s" repeatCount="indefinite" path="M 0 30 L 1200 30" />
-                    </rect>
+                    </rect>}
                 </svg>
                 <div className="max-w-6xl mx-auto relative">
                     <div className="flex items-center gap-6 overflow-x-auto hide-scrollbar">
@@ -985,14 +986,14 @@ export default function LandingPage() {
                 <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="xMidYMid slice" viewBox="0 0 1200 500" xmlns="http://www.w3.org/2000/svg" style={{ opacity: 0.3 }}>
                     <path d="M -50 400 C 200 370, 450 300, 650 320 S 950 250, 1250 280" fill="none" stroke="rgba(245,158,11,0.06)" strokeWidth="50" strokeLinecap="round" />
                     <path d="M -50 400 C 200 370, 450 300, 650 320 S 950 250, 1250 280" fill="none" stroke="rgba(245,158,11,0.12)" strokeWidth="1.2" strokeDasharray="14 28" style={{ animation: 'hero-dash 3s linear infinite' }} />
-                    <rect x="-7" y="-4" width="14" height="8" rx="3" fill="rgba(255,255,255,0.2)">
+                    {!isMobile && <rect x="-7" y="-4" width="14" height="8" rx="3" fill="rgba(255,255,255,0.2)">
                         <animateMotion dur="12s" repeatCount="indefinite" rotate="auto" path="M -50 400 C 200 370, 450 300, 650 320 S 950 250, 1250 280" />
-                    </rect>
-                    <circle r="4" fill="rgba(245,158,11,0.2)">
+                    </rect>}
+                    {!isMobile && <circle r="4" fill="rgba(245,158,11,0.2)">
                         <animateMotion dur="12s" repeatCount="indefinite" rotate="auto" path="M -50 400 C 200 370, 450 300, 650 320 S 950 250, 1250 280" />
-                    </circle>
+                    </circle>}
                     {/* Speedometer arcs behind each card */}
-                    {[200, 600, 1000].map((x, i) => (
+                    {!isMobile && [200, 600, 1000].map((x, i) => (
                         <g key={`arc-${i}`} opacity="0.15">
                             <path d={`M ${x - 60} 180 A 60 60 0 0 1 ${x + 60} 180`} fill="none" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" />
                             <line x1={x} y1={180} x2={x} y2={130} stroke="#F59E0B" strokeWidth="1" strokeLinecap="round">
@@ -1037,15 +1038,15 @@ export default function LandingPage() {
                         <g key={`hiw-pin-${i}`}>
                             <circle cx={p.x} cy={p.y} r="8" fill="rgba(245,158,11,0.15)" stroke="rgba(245,158,11,0.3)" strokeWidth="1" />
                             <text x={p.x} y={p.y + 4} textAnchor="middle" fill="rgba(245,158,11,0.5)" fontSize="10" fontWeight="bold">{i + 1}</text>
-                            <circle cx={p.x} cy={p.y} fill="none" stroke="rgba(245,158,11,0.2)" strokeWidth="0.8">
+                            {!isMobile && <circle cx={p.x} cy={p.y} fill="none" stroke="rgba(245,158,11,0.2)" strokeWidth="0.8">
                                 <animate attributeName="r" values="8;20" dur="3s" begin={`${i * 1}s`} repeatCount="indefinite" />
                                 <animate attributeName="opacity" values="0.4;0" dur="3s" begin={`${i * 1}s`} repeatCount="indefinite" />
-                            </circle>
+                            </circle>}
                         </g>
                     ))}
-                    <rect x="-6" y="-3" width="12" height="6" rx="2" fill="rgba(245,158,11,0.3)">
+                    {!isMobile && <rect x="-6" y="-3" width="12" height="6" rx="2" fill="rgba(245,158,11,0.3)">
                         <animateMotion dur="14s" repeatCount="indefinite" rotate="auto" path="M -30 450 C 150 350, 300 200, 500 250 S 700 400, 900 300 S 1100 150, 1250 200" />
-                    </rect>
+                    </rect>}
                 </svg>
                 <div className="max-w-5xl mx-auto relative">
                     <RevealOnScroll className="text-center mb-16 lg:mb-20">
@@ -1111,8 +1112,8 @@ export default function LandingPage() {
                 <div className="absolute inset-0 bg-gradient-to-b from-[#0F172A]/50 to-transparent pointer-events-none" />
                 {/* GPS signal ripples + compass */}
                 <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="xMidYMid slice" viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg" style={{ opacity: 0.2 }}>
-                    {/* GPS ripples from two points */}
-                    {[{ x: 150, y: 120 }, { x: 1050, y: 480 }].map((p, i) => (
+                    {/* GPS ripples from two points — desktop only */}
+                    {!isMobile && [{ x: 150, y: 120 }, { x: 1050, y: 480 }].map((p, i) => (
                         <g key={`gps-${i}`}>
                             {[0, 1, 2].map(r => (
                                 <circle key={r} cx={p.x} cy={p.y} fill="none" stroke="rgba(245,158,11,0.15)" strokeWidth="0.8">
@@ -1226,13 +1227,13 @@ export default function LandingPage() {
                     {/* New way (glowing amber) */}
                     <path d="M 450 300 C 600 350, 750 420, 900 380 S 1100 320, 1250 340" fill="none" stroke="rgba(245,158,11,0.06)" strokeWidth="35" strokeLinecap="round" />
                     <path d="M 450 300 C 600 350, 750 420, 900 380 S 1100 320, 1250 340" fill="none" stroke="rgba(245,158,11,0.15)" strokeWidth="1.2" strokeDasharray="14 26" style={{ animation: 'hero-dash 2.5s linear infinite' }} />
-                    {/* Vehicle on new way */}
-                    <rect x="-7" y="-3" width="14" height="6" rx="2" fill="rgba(245,158,11,0.35)">
+                    {/* Vehicle on new way — desktop only */}
+                    {!isMobile && <rect x="-7" y="-3" width="14" height="6" rx="2" fill="rgba(245,158,11,0.35)">
                         <animateMotion dur="10s" repeatCount="indefinite" rotate="auto" path="M -30 350 C 150 340, 300 320, 450 300 C 600 350, 750 420, 900 380 S 1100 320, 1250 340" />
-                    </rect>
-                    <circle r="4" fill="rgba(245,158,11,0.2)">
+                    </rect>}
+                    {!isMobile && <circle r="4" fill="rgba(245,158,11,0.2)">
                         <animateMotion dur="10s" repeatCount="indefinite" rotate="auto" path="M -30 350 C 150 340, 300 320, 450 300 C 600 350, 750 420, 900 380 S 1100 320, 1250 340" />
-                    </circle>
+                    </circle>}
                     {/* Fork label dots */}
                     <circle cx="450" cy="300" r="5" fill="rgba(245,158,11,0.3)" />
                 </svg>
@@ -1345,9 +1346,9 @@ export default function LandingPage() {
                             <circle cx={m.x} cy={m.y} r="4" fill="rgba(245,158,11,0.2)" stroke="rgba(245,158,11,0.3)" strokeWidth="1" />
                         </g>
                     ))}
-                    <rect x="-6" y="-3" width="12" height="6" rx="2" fill="rgba(245,158,11,0.3)">
+                    {!isMobile && <rect x="-6" y="-3" width="12" height="6" rx="2" fill="rgba(245,158,11,0.3)">
                         <animateMotion dur="16s" repeatCount="indefinite" rotate="auto" path="M -30 400 C 200 380, 400 350, 600 360 S 900 330, 1250 350" />
-                    </rect>
+                    </rect>}
                 </svg>
                 <div className="max-w-5xl mx-auto relative">
                     <RevealOnScroll className="text-center mb-14 lg:mb-20">
@@ -1421,17 +1422,17 @@ export default function LandingPage() {
                     {/* Destination pin at convergence */}
                     <circle cx="600" cy="200" r="10" fill="rgba(245,158,11,0.15)" stroke="rgba(245,158,11,0.4)" strokeWidth="1.5" />
                     <circle cx="600" cy="200" r="4" fill="rgba(245,158,11,0.5)" />
-                    <circle cx="600" cy="200" fill="none" stroke="rgba(245,158,11,0.25)" strokeWidth="1">
+                    {!isMobile && <circle cx="600" cy="200" fill="none" stroke="rgba(245,158,11,0.25)" strokeWidth="1">
                         <animate attributeName="r" values="10;30" dur="3s" repeatCount="indefinite" />
                         <animate attributeName="opacity" values="0.5;0" dur="3s" repeatCount="indefinite" />
-                    </circle>
-                    {/* Vehicles approaching from both sides */}
-                    <rect x="-6" y="-3" width="12" height="6" rx="2" fill="rgba(245,158,11,0.3)">
+                    </circle>}
+                    {/* Vehicles approaching from both sides — desktop only */}
+                    {!isMobile && <rect x="-6" y="-3" width="12" height="6" rx="2" fill="rgba(245,158,11,0.3)">
                         <animateMotion dur="8s" repeatCount="indefinite" rotate="auto" path="M -30 300 C 150 280, 350 220, 600 200" />
-                    </rect>
-                    <rect x="-6" y="-3" width="12" height="6" rx="2" fill="rgba(255,255,255,0.2)">
+                    </rect>}
+                    {!isMobile && <rect x="-6" y="-3" width="12" height="6" rx="2" fill="rgba(255,255,255,0.2)">
                         <animateMotion dur="9s" repeatCount="indefinite" begin="2s" rotate="auto" path="M 1230 300 C 1050 280, 850 220, 600 200" />
-                    </rect>
+                    </rect>}
                 </svg>
 
                 <div className="max-w-2xl mx-auto text-center relative z-10">

@@ -163,7 +163,8 @@ export default function AuthScreen() {
             {/* Back Navigation */}
             <button
                 onClick={() => navigate('/')}
-                className="absolute top-6 left-6 z-50 flex items-center gap-2 text-white/50 hover:text-white transition-colors duration-200 text-[14px] font-medium"
+                className="absolute top-6 left-6 z-50 flex items-center gap-2 text-white/50 hover:text-white transition-colors duration-200 text-[14px] font-medium mt-[env(safe-area-inset-top,0px)] sm:mt-0"
+                style={{ marginTop: 'max(env(safe-area-inset-top, 0px), 12px)' }}
             >
                 <Icons.ArrowLeft /> Back to home
             </button>
