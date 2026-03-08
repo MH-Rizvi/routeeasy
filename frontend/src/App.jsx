@@ -252,6 +252,8 @@ function AppShell() {
         hydrate();
     }, [hydrate]);
 
+    const isChat = location.pathname === '/chat';
+
     return (
         <div className="flex h-[100dvh] lg:overflow-hidden relative">
             <Toast />
@@ -259,8 +261,8 @@ function AppShell() {
             {showSidebar && <DesktopSidebar />}
             {/* Main content area — shifts right on desktop when sidebar is visible */}
             <main
-                className={`flex-1 flex flex-col overflow-y-auto ${hideTabBar ? '' : 'pb-safe-tabbar lg:pb-0'} ${showSidebar ? 'lg:ml-64' : ''}`}
-                style={{ WebkitOverflowScrolling: 'touch' }}
+                className={`flex-1 flex flex-col ${isChat ? 'overflow-hidden' : 'overflow-y-auto'} ${hideTabBar ? '' : 'pb-safe-tabbar lg:pb-0'} ${showSidebar ? 'lg:ml-64' : ''}`}
+                style={isChat ? {} : { WebkitOverflowScrolling: 'touch' }}
             >
                 <Routes>
                     <Route path="/login" element={<div key={location.pathname} className="page-transition"><AuthScreen /></div>} />

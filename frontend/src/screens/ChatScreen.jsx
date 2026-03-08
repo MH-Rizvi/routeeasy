@@ -49,7 +49,7 @@ export default function ChatScreen() {
     };
 
     return (
-        <div className="flex flex-col flex-1 w-full relative animate-page-enter lg:flex-row h-full overflow-hidden">
+        <div className="flex flex-col flex-1 w-full relative animate-page-enter lg:flex-row h-full lg:overflow-hidden">
             {/* ── Desktop Left Panel: Prompts ── */}
             <div className="hidden lg:flex flex-col w-72 shrink-0 h-full overflow-y-auto relative z-10" style={{ background: 'rgba(13,17,23,0.75)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRight: '1px solid rgba(255,255,255,0.04)' }}>
                 {/* Panel header */}
@@ -106,7 +106,7 @@ export default function ChatScreen() {
                 <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.04)_0%,transparent_80%)] z-0" />
                 <div className="absolute inset-0 pointer-events-none noise-bg mix-blend-overlay opacity-20 z-0" />
 
-                <div className="relative z-10 w-full">
+                <div className="relative z-10 w-full shrink-0">
                     <Header
                         rightElement={messages.length > 0 && (
                             <button onClick={resetChat} className="min-h-touch px-3 text-[13px] text-accent font-bold tracking-wide hover:opacity-100 hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.8)] transition-all drop-shadow-md">
@@ -117,7 +117,10 @@ export default function ChatScreen() {
                 </div>
 
                 {/* Messages area — fills all remaining space */}
-                <div className="flex-1 overflow-y-auto px-4 sm:px-5 lg:px-8 py-4 flex flex-col relative z-10">
+                <div
+                    className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-5 lg:px-8 py-4 flex flex-col relative z-10"
+                    style={{ WebkitOverflowScrolling: 'touch' }}
+                >
                     {messages.length === 0 && !loading && (
                         <div className="flex flex-col items-center justify-center h-full text-center animate-fade-up max-w-md mx-auto lg:max-w-lg select-none">
                             {/* Animated gradient orb */}
@@ -215,7 +218,7 @@ export default function ChatScreen() {
                     <div ref={scrollRef} />
                 </div>
 
-                <div className="relative z-10">
+                <div className="relative z-10 shrink-0">
                     <ChatInput onSend={sendMessage} loading={loading} />
                 </div>
             </div>
