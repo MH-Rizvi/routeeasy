@@ -75,8 +75,16 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-.pb-safe-tabbar {
-    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)) !important;
+@media (max-width: 1023px) {
+    .pb-safe-tabbar {
+        padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)) !important;
+    }
+}
+
+@media (min-width: 1024px) {
+    .pb-safe-tabbar {
+        padding-bottom: 0px !important;
+    }
 }
 
 .bottom-safe-fab {
