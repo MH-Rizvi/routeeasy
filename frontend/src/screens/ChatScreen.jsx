@@ -158,8 +158,9 @@ export default function ChatScreen() {
                             <div className="w-7 h-7 rounded-full flex items-center justify-center mr-2.5 mt-1 shrink-0" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2"><circle cx="12" cy="10" r="3" /><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z" /></svg>
                             </div>
-                            <div className="rounded-2xl rounded-bl-md px-5 py-4" style={{ background: 'linear-gradient(135deg, rgba(20,26,45,0.6) 0%, rgba(13,17,23,0.8) 100%)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                            <div className="rounded-2xl rounded-bl-md px-5 py-3.5" style={{ background: 'linear-gradient(135deg, rgba(20,26,45,0.6) 0%, rgba(13,17,23,0.8) 100%)', border: '1px solid rgba(255,255,255,0.04)' }}>
                                 <div className="typing-dots"><span /><span /><span /></div>
+                                <p className="text-[10px] text-white/25 mt-1.5 font-medium tracking-wide">Mapping route…</p>
                             </div>
                         </div>
                     )}

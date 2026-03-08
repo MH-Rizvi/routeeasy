@@ -251,7 +251,7 @@ function AppShell() {
     }, [hydrate]);
 
     return (
-        <div className="flex min-h-screen relative">
+        <div className="flex h-screen overflow-hidden relative">
             <Toast />
             {/* Desktop sidebar — only on authenticated screens */}
             {showSidebar && <DesktopSidebar />}
