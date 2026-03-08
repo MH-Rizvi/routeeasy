@@ -36,9 +36,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(
             token,
-            secret,
+            settings.jwt_secret,
             algorithms=["HS256"],
-            options={"verify_aud": False},
+            options={"verify_aud": False}
         )
         user_id: str = payload.get("sub")
         user_email: str = payload.get("email", "")
