@@ -76,7 +76,7 @@
 }
 
 .pb-safe-tabbar {
-    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: 0px !important;
 }
 
 .bottom-safe-fab {

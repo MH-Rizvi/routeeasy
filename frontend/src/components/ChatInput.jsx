@@ -22,7 +22,7 @@ export default function ChatInput({ onSend, loading = false }) {
 
     return (
         <div
-            className="px-3 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-3"
+            className="px-3 sm:px-4 shrink-0"
             style={{
                 background: 'linear-gradient(to top, rgba(10,15,30,0.98) 0%, rgba(10,15,30,0.85) 100%)',
                 backdropFilter: 'blur(24px)',
@@ -111,7 +111,7 @@ export default function ChatInput({ onSend, loading = false }) {
                 </div>
 
                 {/* Subtle helper text */}
-                <p className="text-[11px] text-white/20 text-center mt-2 font-medium tracking-wide">
+                <p className="text-[11px] text-white/20 text-center pt-1.5 pb-0 leading-none font-medium tracking-wide">
                     {isTranscribing ? '🎙️ Recording… tap mic to stop' : 'Describe stops, addresses, or ask about past routes'}
                 </p>
             </div>
