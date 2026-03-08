@@ -69,8 +69,14 @@ export default function VoiceInputButton({ onTranscript, disabled = false, onTra
 
     return (
         <button onClick={handleToggle} disabled={disabled}
-            className={`min-w-touch min-h-touch rounded-xl flex items-center justify-center transition-all ${recording ? 'bg-danger text-white shadow-glow animate-pulse' : 'bg-elevated text-text-muted hover:text-text-secondary border border-border'
-                } disabled:opacity-30`}
+            className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${recording
+                ? 'text-white animate-pulse'
+                : 'text-white/40 hover:text-white/70'
+                } disabled:opacity-20`}
+            style={recording
+                ? { background: 'rgba(239,68,68,0.2)', boxShadow: '0 0 12px rgba(239,68,68,0.3)' }
+                : { background: 'rgba(255,255,255,0.04)' }
+            }
             aria-label={recording ? 'Stop recording' : 'Start voice input'}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 {recording
