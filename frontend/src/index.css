@@ -92,11 +92,14 @@
         bottom: 60px;
         /* height of bottom nav bar */
         position: relative;
+        padding-bottom: 0;
     }
+}
 
-    .safe-area-chat-input {
+/* PWA standalone mode only — apply safe area */
+@media all and (display-mode: standalone) {
+    .chat-input-wrapper {
         padding-bottom: env(safe-area-inset-bottom);
-        margin-bottom: env(safe-area-inset-bottom);
     }
 }
 
