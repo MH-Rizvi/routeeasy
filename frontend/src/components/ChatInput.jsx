@@ -22,7 +22,7 @@ export default function ChatInput({ onSend, loading = false }) {
     };
 
     return (
-        <div className="shrink-0 px-3 sm:px-4 pb-1" style={{ background: 'transparent' }}>
+        <div className="shrink-0 px-3 sm:px-4 pb-1 safe-area-chat-input" style={{ background: 'transparent' }}>
             <div className="max-w-3xl mx-auto">
                 {/* ── Outer glow wrapper — provides the ambient light-source effect ── */}
                 <div

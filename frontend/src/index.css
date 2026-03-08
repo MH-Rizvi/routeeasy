@@ -93,6 +93,11 @@
         /* height of bottom nav bar */
         position: relative;
     }
+
+    .safe-area-chat-input {
+        padding-bottom: env(safe-area-inset-bottom);
+        margin-bottom: env(safe-area-inset-bottom);
+    }
 }
 
 @media (min-width: 1024px) {
