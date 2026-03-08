@@ -6,7 +6,7 @@ import time
 from collections import defaultdict
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status  # pyright: ignore[reportMissingImports]
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status  # pyright: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # pyright: ignore[reportMissingImports]
 
 from app import models, schemas
@@ -41,7 +41,7 @@ def _check_demo_rate(ip: str) -> bool:
 @limiter.limit("100/hour")
 async def chat(
     request: Request,
-    payload: schemas.AgentChatRequest,
+    payload: schemas.AgentChatRequest = Body(...),
     db: Session = Depends(get_db),
     current_user: Any = Depends(get_current_user),
 ) -> schemas.AgentChatResponse:
@@ -81,7 +81,7 @@ async def chat(
 @router.post("/agent/demo-chat", response_model=schemas.AgentChatResponse)
 async def demo_chat(
     request: Request,
-    payload: schemas.DemoChatRequest,
+    payload: schemas.DemoChatRequest = Body(...),
     db: Session = Depends(get_db),
 ) -> schemas.AgentChatResponse:
     """Public demo endpoint — no auth required, rate-limited."""
