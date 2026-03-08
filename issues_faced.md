@@ -280,3 +280,23 @@ The LandingPage CTA buttons, Desktop Navbar links, and Mobile Menu items were bu
 ### Resolution Implemented
 1. **Client-Side Navigation:** Replaced all `<a>` tags pointing to internal routes throughout the `LandingPage.jsx` (Hero CTAs, Navbar, Mobile Menu) with React Router `<Link to="...">` components.
 2. **Hydration Protection:** This ensures navigation happens instantly client-side via React Router without destroying the DOM or triggering full browser hard-reloads, completely bypassing the hydration race condition that caused the white screen.
+
+## Issue 18: Profile Data Missing from Account Screen After Fresh Login
+**Phase:** Core Authentication / Profile Data
+**Date Identified:** March 7, 2026
+**Severity:** MEDIUM (Confusing UX: "Data loss" illusion)
+
+### Description
+When a user updated their personal information (First Name, Last Name, Birthday) and saved it, the data persisted correctly. However, if they signed out and signed back in, the Account screen would inexplicably show blank fields for those values. A hard refresh of the page (F5) would magically bring the data back.
+
+### Root Cause Analysis
+The frontend uses Zustand to manage the globally active `User` object. 
+1. When a user did a hard-refresh, the `AppShell` triggered a `hydrate()` loop which called the `GET /api/v1/auth/me` endpoint. This endpoint correctly queried the `UserProfile` table and returned all populated fields (`first_name`, `last_name`, `birthday`, `city`, `state`, etc.). 
+2. But when a user actively submitted the Login form, the `AuthScreen` directly updated Zustand using the exact JSON dictionary returned by the `POST /api/v1/auth/login` endpoint.
+3. The `POST /api/v1/auth/login` backend endpoint was only programmed to return `id`, `email`, `city`, `state`, and `zip_code`. It entirely omitted `first_name`, `last_name`, and `birthday` in its payload. 
+Thus, logging in actively overwrote the frontend's Zustand state with a `User` object missing those three fields, giving the UI the illusion that the data was erased.
+
+### Resolution Implemented
+1. **Endpoint Parity:** Updated the `/login` route in `backend/app/routers/auth.py` to faithfully extract and include `first_name`, `last_name`, and `birthday` from the `UserProfile` database row into the returned `user` dictionary.
+2. **Signup Parity:** Also added the missing `birthday` field to the payload returned by the `/signup` route.
+Now, the `User` object passed to the frontend is perfectly identical whether it comes from a fresh Login, a Signup, or a background Hydration (`auth/me`), ensuring the Account screen always has the complete data immediately.

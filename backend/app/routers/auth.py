@@ -78,6 +78,7 @@ async def signup(request: schemas.SignupRequest, response: Response, db: Session
                 "email": request.email,
                 "first_name": request.first_name,
                 "last_name": request.last_name,
+                "birthday": request.birthday,
                 "city": request.city,
                 "state": request.state,
                 "zip_code": request.zip_code,
@@ -133,6 +134,9 @@ async def login(request: schemas.LoginRequest, response: Response, db: Session =
             "user": {
                 "id": user_uuid,
                 "email": request.email,
+                "first_name": profile.first_name if profile else "",
+                "last_name": profile.last_name if profile else "",
+                "birthday": profile.birthday if profile else "",
                 "city": profile.city if profile else "",
                 "state": profile.state if profile else "",
                 "zip_code": profile.zip_code if profile else "",
