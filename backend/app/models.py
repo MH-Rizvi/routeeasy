@@ -127,3 +127,10 @@ class LLMLog(Base):
     run_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
 
 
+class ApiUsage(Base):
+    __tablename__ = "api_usage"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    api_name: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    date: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    request_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")

@@ -8,7 +8,8 @@ from typing import Any, Dict
 import httpx
 
 from app.config import settings
-
+from app.database import SessionLocal
+from app.models import ApiUsage
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +120,31 @@ def _extract_state_from_query(query: str) -> tuple[str, float, float] | None:
     return None
 
 
+def _check_and_increment_quota() -> bool:
+    """
+    Check if we've exceeded the daily quota of 1300 geocoding requests.
+    Returns True if allowed, False if quota exceeded.
+    """
+    from datetime import datetime, timezone
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    db = SessionLocal()
+    try:
+        usage = db.query(ApiUsage).filter(ApiUsage.api_name == "google_geocoding", ApiUsage.date == today).first()
+        if not usage:
+            usage = ApiUsage(api_name="google_geocoding", date=today, request_count=0)
+            db.add(usage)
+            
+        if usage.request_count >= 1300:
+            return False
+            
+        usage.request_count += 1
+        db.commit()
+        return True
+    finally:
+        db.close()
+
+
 async def geocode(query: str, user_city: str) -> Dict[str, Any]:
     """
     Resolve a place/address description to lat/lng using Google Geocoding API.
@@ -155,6 +181,18 @@ async def geocode(query: str, user_city: str) -> Dict[str, Any]:
             "formatted_address": None,
             "confidence": "low",
             "error": "Geocoding service is not configured.",
+        }
+
+    # Check daily API quota before proceeding to avoid unexpected billing
+    if not _check_and_increment_quota():
+        logger.warning("Google Maps Geocoding daily quota (1300) exceeded.")
+        return {
+            "success": False,
+            "lat": None,
+            "lng": None,
+            "formatted_address": None,
+            "confidence": "low",
+            "error": "Daily map routing quota exceeded (free tier limit protection).",
         }
 
     # Detect if the query itself already specifies a state
