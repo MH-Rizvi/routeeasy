@@ -57,10 +57,11 @@
 │  │   │ search_saved_    │  │  get_trip_by_id              │   │  │
 │  │   │ trips (ChromaDB) │  │  (PostgreSQL)                │   │  │
 │  │   └──────────────────┘  └──────────────────────────────┘   │  │
-│  │   ┌──────────────────┐                                      │  │
-│  │   │ get_recent_      │  LangChain Callback Handler          │  │
-│  │   │ history (Postgres)  logs every LLM call → llm_logs       |  |
-│  │   └──────────────────┘                                      │  │
+│  │   ┌──────────────────┐  ┌──────────────────────────────┐   │  │
+│  │   │ get_recent_      │  │  modify_route (Atomic Array) │   │  │
+│  │   │ history (Postgres)  │  (Add/Remove/Replace python) │   │  │
+│  │   └──────────────────┘  └──────────────────────────────┘   │  │
+│  │   LangChain Callback Handler logs every LLM call → llm_logs│  │
 │  └─────────────────────────────────────────────────────────────┘  │
 │                                                                    │
 │  ┌─────────────────────────────────────────────────────────────┐  │
@@ -166,6 +167,14 @@ Since ReAct agents aggressively drop secondary keyword parameters within JSON lo
 Example: `Action Input: The High School, Dallas, TX`.
 
 The backend `_extract_state_from_query()` intercepts the String input dynamically reading 50 States + DC checking for explicit bindings natively prior to executing Google parameters. It uses hardcoded Lat/Lng state-center arrays overriding the driver's local geographic preferences securely mitigating all invalid geographic routing behaviors seamlessly avoiding Google fallback errors completely.
+
+---
+
+## 4.5. Deterministic Route State Mutation
+
+Since LLMs are highly prone to index-drift and hallucinations when rewriting complex JSON lists from fading multi-turn memory windows, RoutAura actively strips state-management authorization away from the AI agent. The frontend pushes the exact active route array into the `current_route` backend payload on every request.
+
+This array is injected into the LLM context. When the user requests a modification (e.g., "Change stop 2 to Walmart"), the LLM executes the atomic `@tool("modify_route", action="replace", position=2)`. The Python backend deterministically edits the array, performs isolated single-stop geocoding, recalculates index mapping perfectly, and returns the strictly enforced state back to the UI, completely eliminating array drift.
 
 ---
 

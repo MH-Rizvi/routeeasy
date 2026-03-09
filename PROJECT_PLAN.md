@@ -232,4 +232,14 @@ Ship the agentic AI core natively first — establishing absolute structural sta
 - [x] **T172** — Enhance deep scroll behavior fixing Mobile container overrides securely executing inputs explicitly matching software keyboards. 
 
 ---
+
+## Phase 24 — Deterministic Route State Migration
+*Goal: Remove JSON array management from the LLM to prevent hallucinations during partial route updates.*
+
+- [x] **T173** — Add `current_route` payload to `AgentChatRequest` and frontend `client.js`.
+- [x] **T174** — Implement deterministic `@tool("modify_route")` for add/remove/replace actions natively in Python.
+- [x] **T175** — Inject active route arrays dynamically into the LLM system prompt context on every conversational turn.
+- [x] **T176** — Remove brittle route array reconstruction and fuzzy-matching fallbacks from frontend UI stores.
+
+---
 _END OF ROADMAP_

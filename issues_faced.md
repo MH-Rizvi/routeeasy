@@ -530,5 +530,22 @@ For specific chain stores requested without specific street components (e.g. "Tr
 The standard Geocoding API is optimized for street addresses, not establishment context querying.
 
 ### Resolution Implemented
-1. **Generic Reject Filter:** Modified `_is_invalid_generic` in `geocoding_service.py` to instantly reject any result that lacks a street number or explicit place name.
-2. **Google Places TextSearch Fallback (ATTEMPT 3):** Added a third fallback layer to the geocoding service. If the standard geocoder returns only a generic city-blob, the backend automatically fails-over to the `Google Places textsearch API` (`type: establishment`) cleanly resolving branch addresses.
+3. **Generic Reject Filter:** Modified `_is_invalid_generic` in `geocoding_service.py` to instantly reject any result that lacks a street number or explicit place name.
+4. **Google Places TextSearch Fallback (ATTEMPT 3):** Added a third fallback layer to the geocoding service. If the standard geocoder returns only a generic city-blob, the backend automatically fails-over to the `Google Places textsearch API` (`type: establishment`) cleanly resolving branch addresses.
+
+## Issue 35: LLM Route Array Corruption and Index Drift
+**Phase:** Core Architecture / Route State Management
+**Date Identified:** March 9, 2026
+**Severity:** CRITICAL (Data Loss and Premature UI Updates)
+
+### Description
+Trusting the LLM to hold, manage, and rewrite the rigidly-ordered JSON array of `stops` across multi-turn conversational memory led to catastrophic array failures. When users executed partial corrections (e.g., "Change stop 2 to Walmart"), the LLM frequently forgot the starting point (Stop 1), hallucinated indexes, or skipped sending coordinates, causing the frontend UI to instantly overwrite the wrong stop or temporarily break the route map during confirmation prompts.
+
+### Root Cause Analysis
+Language models are probabilistic text generators, not deterministic databases. Even with extreme prompt rules, an LLM cannot reliably reconstruct a rigid schema from fading context windows while performing logic. The architecture was anti-pattern: using an LLM to manage static application state rather than just parsing intents.
+
+### Resolution Implemented
+1. **Moved State Control to Python/JS:** Ripped route construction authorization away from the LLM. 
+2. **Current Route Injection:** Upgraded the API payload so the frontend `chatStore` dynamically pumps the definitive `current_route` state into the backend on every cycle, which in turn injects it directly into the LLM's system prompt context.
+3. **Deterministic `@tool` Mutation:** Created a new Langchain `@tool("modify_route")` (handling `add`, `remove`, `replace`) that executes atomic array modifications perfectly using Python logic, stripping the LLM's responsibility down to simply declaring *which* index to modify and with *what* query.
+4. **Frontend Absolute Truth:** Demolished the brittle, multi fallback text-parsing blocks in the frontend `chatStore.js`. The UI now blindly trusts the mechanical `response.stops` array outputted directly from Python, completely eliminating Stop 1 overwrites or partial update UI glitches.

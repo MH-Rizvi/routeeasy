@@ -44,6 +44,7 @@ This implementation acts fundamentally as a robust portfolio benchmark reflectin
 3. **Retrieval-Augmented Generation (RAG)**: Drivers inquiring "When did I last perform a Sunday run?" invoke an isolated pipeline that strictly answers natural language questions using fact-grounded `trip_history` databases indexed by cosine-similarity.
 4. **Resilient Rate Rotation Engines**: Heavy LangChain workloads easily trip commercial API limits. RoutAura leverages a `groq_rotator` hook to intercept HTTP 503 Overloads or 429 Statuses, transferring inference seamlessly to Google Gemini clusters on the fly so the end user never visualizes a failure state.
 5. **Contextual LLMOps Tracking**: A specialized LangChain callback layer captures payload latencies, API prompt variations, success metrics, and token consumption statistics routing them directly into PostgreSQL arrays.
+6. **Deterministic Route State Mutation**: Rather than trusting the LLM to remember and rewrite the user's entire multi-stop route array on every correction, RoutAura maintains strict deterministic state. Frontends inject the `current_route` into the backend context continuously, and the LLM merely interfaces with an atomic Python `@tool("modify_route")` to surgically alter precise positions without risking array drop-offs or hallucinated coordinates natively.
 
 ---
 
