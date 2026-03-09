@@ -116,6 +116,11 @@ export const sendDemoMessage = async (message, conversationHistory = []) => {
     return data;
 };
 
+export const calculateRouteStats = async (stops) => {
+    const response = await api.post('/directions/stats', { stops });
+    return response.data;
+};
+
 // ─────────────────────────────────────────────
 // RAG — History Q&A
 // ─────────────────────────────────────────────

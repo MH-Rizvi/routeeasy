@@ -184,7 +184,24 @@ const useChatStore = create((set, get) => ({
                 }).filter(s => s.lat !== null); // Drop stops with no coordinates entirely
             }
 
-            const asstMsg = _addMessage('assistant', finalReply, messageStops, response.total_distance_text, response.total_duration_text);
+            let finalDistanceText = response.total_distance_text;
+            let finalDurationText = response.total_duration_text;
+
+            // If backend returned partial stops (correction turn), recalculate stats
+            // using the fully merged stops array which has all real coordinates.
+            if (messageStops && messageStops.length >= 2 && (!finalDistanceText || !finalDurationText || finalDistanceText === 'N/A' || finalDurationText === 'N/A')) {
+                try {
+                    const statsResponse = await import('../api/client').then(m => m.calculateRouteStats(messageStops));
+                    if (statsResponse?.distance && statsResponse.distance !== 'N/A') {
+                        finalDistanceText = statsResponse.distance;
+                        finalDurationText = statsResponse.duration;
+                    }
+                } catch (e) {
+                    console.warn('Could not recalculate route stats:', e);
+                }
+            }
+
+            const asstMsg = _addMessage('assistant', finalReply, messageStops, finalDistanceText, finalDurationText);
 
             // Track stops for confirmation flow
             set({
