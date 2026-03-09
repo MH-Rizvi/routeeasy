@@ -205,6 +205,7 @@ class LLMLogListResponse(BaseModel):
 class AgentChatRequest(BaseModel):
     message: str
     conversation_history: List[ConversationMessage] = []
+    current_route: List[Dict] = []
     session_id: Optional[str] = None
 
 

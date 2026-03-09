@@ -11,6 +11,7 @@ from typing import Any, Dict, List
 from langchain.agents import AgentExecutor, create_react_agent  # pyright: ignore[reportMissingImports]
 from langchain.prompts import PromptTemplate  # pyright: ignore[reportMissingImports]
 
+import app.agent.tools # pyright: ignore[reportMissingImports]
 from app.agent.output_parser import RouteEasyOutputParser
 
 from app.agent.callbacks import LLMOpsCallbackHandler # pyright: ignore[reportMissingImports]
@@ -22,6 +23,7 @@ from app.agent.tools import (
     get_trip_by_id_tool,
     get_recent_history_tool,
     save_trip_tool,
+    modify_route_tool,
 )
 from app.services import directions_service
 from app.services.groq_client import groq_rotator, _is_rate_limit_error
@@ -37,11 +39,12 @@ _tools = [
     get_trip_by_id_tool,
     get_recent_history_tool,
     save_trip_tool,
+    modify_route_tool,
 ]
 
 _prompt = PromptTemplate(
     template=SYSTEM_PROMPT_v1,
-    input_variables=["input", "chat_history", "agent_scratchpad", "tools", "tool_names", "user_context"],
+    input_variables=["input", "chat_history", "agent_scratchpad", "tools", "tool_names", "user_context", "current_route"],
 )
 
 # Ordered by reliability/capacity — less popular models first to reduce rate-limit hits.
@@ -259,6 +262,7 @@ _processing_messages = set()
 async def run_agent(
     message: str,
     conversation_history: List[Dict[str, Any]] | None = None,
+    current_route: List[Dict[str, Any]] | None = None,
     db: Any | None = None,
     user_id: str | None = None,
     user_city: str | None = None,
@@ -274,7 +278,7 @@ async def run_agent(
         
     _processing_messages.add(msg_hash)
     try:
-        return await _run_agent_internal(message, conversation_history, db, user_id, user_city)
+        return await _run_agent_internal(message, conversation_history, current_route, db, user_id, user_city)
     finally:
         _processing_messages.discard(msg_hash)
 
@@ -322,6 +326,7 @@ Always address them by their first name naturally in conversation — not every 
 async def _run_agent_internal(
     message: str,
     conversation_history: List[Dict[str, Any]] | None = None,
+    current_route: List[Dict[str, Any]] | None = None,
     db: Any | None = None,
     user_id: str | None = None,
     user_city: str | None = None,
@@ -338,10 +343,18 @@ async def _run_agent_internal(
     # Send only the last 4 messages to save tokens
     recent_history = (conversation_history or [])[-4:]
     chat_history_str = _format_history(recent_history)
+    route_str = "No active route."
+    if current_route and len(current_route) > 0:
+        lines = []
+        for i, stop in enumerate(current_route):
+            lines.append(f"{i + 1}. {stop.get('label', 'Unknown')} ({stop.get('resolved', 'Unknown')})")
+        route_str = "\n".join(lines)
+
     invoke_input = {
         "input": message,
         "chat_history": chat_history_str,
         "user_context": user_context,
+        "current_route": route_str,
     }
 
     last_exc: Exception | None = None
@@ -354,13 +367,14 @@ async def _run_agent_internal(
     while True:
         try:
             from app.agent.callbacks import ContextCallbackHandler
-            from app.agent.tools import user_id_ctx, user_city_ctx
+            from app.agent.tools import user_id_ctx, user_city_ctx, active_route_ctx
             
             # CRITICAL: Always reset contextvars at the start of every request
             # to prevent stale values from a previous request leaking across
             # the shared async event loop. This is a data isolation safeguard.
             user_id_ctx.set(user_id)
             user_city_ctx.set(user_city)
+            active_route_ctx.set(current_route or [])
 
             # Inject user context into the callbacks so tools can access them
             context_callbacks = [ContextCallbackHandler(user_id=user_id, user_city=user_city, db=db)]
@@ -370,21 +384,11 @@ async def _run_agent_internal(
             reply = result.get("output", "")
             intermediate = result.get("intermediate_steps", [])
 
-            # Primary: extract stops from geocode tool calls this turn
-            stops_tools = _extract_stops_from_steps(intermediate)
-
-            # Fallback: parse stops from the reply text (coordinates in Final Answer)
-            stops_reply = _extract_stops_from_reply(reply)
-
-            # ALWAYS prefer stops_tools — they contain real lat/lng from the Google Geocoding API.
-            # stops_reply parses addresses from the agent's text reply which carries no real coordinates.
-            # When a user corrects a stop mid-conversation, the agent only re-geocodes that one stop,
-            # so stops_tools has 1 entry while stops_reply has all N entries parsed from text.
-            # The old logic (prefer whichever has more entries) caused stops_reply to win, injecting
-            # stale NYC default coordinates (40.7128, -74.006) into the stops array and making
-            # calculate_route_stats() return N/A for distance and duration.
-            # Only fall back to stops_reply if stops_tools is completely empty (e.g. trip loaded from saved data).
-            stops = stops_tools if stops_tools else stops_reply
+            # We no longer extract stops from tool sequences or text regex parsing.
+            # Python natively tracks the final current_route list dynamically.
+            # We simply read the modified route directly.
+            from app.agent.tools import get_current_route
+            stops = get_current_route()
 
             # We no longer strip coordinates from the reply text here!
             # If we strip them here, the frontend won't save them in conversation history,

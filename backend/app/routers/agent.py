@@ -60,6 +60,7 @@ async def chat(
         result: dict[str, Any] = await agent_service.run_agent(
             payload.message,
             payload.conversation_history,  # pyright: ignore[reportArgumentType]
+            payload.current_route,
             db,
             user_id=current_user.id,
             user_city=user_city,
@@ -103,6 +104,7 @@ async def demo_chat(
         result: dict[str, Any] = await agent_service.run_agent(
             payload.message,
             payload.conversation_history,  # pyright: ignore[reportArgumentType]
+            [],
             db,
             user_id=0,
             user_city="Hicksville, NY",

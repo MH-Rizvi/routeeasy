@@ -99,19 +99,21 @@ api.interceptors.response.use(
 // Agent
 // ─────────────────────────────────────────────
 
-export const sendAgentMessage = async (message, conversationHistory = [], sessionId = '') => {
+export const sendAgentMessage = async (message, conversationHistory = [], currentRoute = [], sessionId = '') => {
     const { data } = await api.post('/agent/chat', {
         message,
         conversation_history: conversationHistory,
+        current_route: currentRoute,
         session_id: sessionId,
     });
     return data;
 };
 
-export const sendDemoMessage = async (message, conversationHistory = []) => {
+export const sendDemoMessage = async (message, conversationHistory = [], currentRoute = []) => {
     const { data } = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/agent/demo-chat`, {
         message,
         conversation_history: conversationHistory,
+        current_route: currentRoute,
     });
     return data;
 };

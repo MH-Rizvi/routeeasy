@@ -64,7 +64,8 @@ const useChatStore = create((set, get) => ({
         set({ loading: true, error: null });
 
         try {
-            const response = await sendAgentMessage(text, conversationHistory, SESSION_ID);
+            const currentRoute = get().lastRoute?.stops || [];
+            const response = await sendAgentMessage(text, conversationHistory, currentRoute, SESSION_ID);
 
             let finalReply = response.reply;
             if (finalReply && finalReply.includes("Agent stopped due to iteration limit")) {
@@ -75,113 +76,14 @@ const useChatStore = create((set, get) => ({
                 }
             }
 
-            // Parse message text for numbered stop lists (e.g. "1. Label - Address")
-            const lines = finalReply.split('\n');
-            const parsedStops = [];
-
-            lines.forEach((line) => {
-                const match = line.match(/^\s*\d+\.\s+(.+)$/);
-                if (match) {
-                    const text = match[1];
-                    // Look for the last ' - ' to avoid splitting on negative coordinate signs like -73.0
-                    const dashIdx = text.lastIndexOf(' - ');
-                    let label = text.trim();
-                    let resolved = text.trim();
-                    if (dashIdx !== -1) {
-                        label = text.substring(0, dashIdx).trim();
-                        resolved = text.substring(dashIdx + 3).trim();
-                    }
-
-                    // Strip optional (lat, lng) from the frontend display label if present
-                    label = label.replace(/\s*\(-?\d+\.?\d*,\s*-?\d+\.?\d*\)\s*/g, ' ').trim();
-
-                    parsedStops.push({ label, resolved });
-                }
-            });
-
             let messageStops = null;
 
-            if (response.stops && response.stops.length >= 2) {
-                // Backend returned a full set of stops with real coordinates — use them directly.
-                // If parsedStops has matching count, use frontend display labels for cleaner UX.
-                if (parsedStops.length === response.stops.length) {
-                    messageStops = response.stops.map((bs, idx) => ({
-                        ...bs,
-                        label: parsedStops[idx]?.label || bs.label,
-                        resolved: parsedStops[idx]?.resolved || bs.resolved,
-                    }));
-                } else {
-                    messageStops = response.stops;
-                }
-            } else if (response.stops && response.stops.length > 0 && get().lastRoute?.stops?.length > 0) {
-                // Partial update — agent only geocoded the corrected stop(s).
-                // Merge by position: new geocoded stops override their position in lastRoute.
-                // This prevents NYC default coordinates from appearing for unchanged stops.
-                const lastStops = get().lastRoute.stops;
-                const newStops = response.stops;
-
-                // Match newly geocoded stops to their correct positions using parsedStops labels.
-                // The backend always returns position: 0 for partial updates so we cannot trust
-                // the position field — instead we match by finding which parsedStop label
-                // corresponds to a newly geocoded resolved address.
-                const newByPosition = {};
-                newStops.forEach(newStop => {
-                    // Find which index in parsedStops matches this newly geocoded stop's address
-                    const matchIdx = parsedStops.findIndex(ps => {
-                        const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                        const psNorm = normalize(ps.resolved);
-                        const nsNorm = normalize(newStop.resolved);
-                        return psNorm && nsNorm && (psNorm.includes(nsNorm) || nsNorm.includes(psNorm));
-                    });
-                    if (matchIdx !== -1) {
-                        newByPosition[matchIdx] = newStop;
-                    } else {
-                        // Fallback: use position field if label matching fails
-                        newByPosition[newStop.position] = newStop;
-                    }
-                });
-
-                messageStops = lastStops.map((old, idx) => {
-                    if (newByPosition[idx]) {
-                        return {
-                            ...newByPosition[idx],
-                            label: parsedStops[idx]?.label || newByPosition[idx].label,
-                            position: idx,
-                        };
-                    }
-                    return { ...old, position: idx };
-                });
-
-                // Append any new stops that go beyond the original route length
-                newStops.forEach(s => {
-                    if (s.position >= lastStops.length) {
-                        messageStops.push(s);
-                    }
-                });
-            } else if (parsedStops.length >= 2) {
-                // Last resort: parse from text only — no coordinate data available at all.
-                // Use lastRoute stops as coordinate source via fuzzy match.
-                const allKnownStops = [...(get().lastRoute?.stops || [])];
-                const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-
-                messageStops = parsedStops.map((ps, idx) => {
-                    const pNorm = normalize(ps.label);
-                    const pResNorm = normalize(ps.resolved);
-                    const known = allKnownStops.find(ks => {
-                        const kNorm = normalize(ks.label);
-                        const kResNorm = normalize(ks.resolved);
-                        return (kNorm && pNorm && (kNorm.includes(pNorm) || pNorm.includes(kNorm))) ||
-                            (kResNorm && pResNorm && (kResNorm.includes(pResNorm) || pResNorm.includes(kResNorm)));
-                    });
-                    return {
-                        label: ps.label,
-                        resolved: ps.resolved,
-                        lat: known?.lat ?? null,
-                        lng: known?.lng ?? null,
-                        note: null,
-                        position: idx,
-                    };
-                }).filter(s => s.lat !== null); // Drop stops with no coordinates entirely
+            if (response.needs_confirmation) {
+                // Do NOT generate a route card. The UI should only show the confirmation question.
+                messageStops = null;
+            } else if (response.stops && response.stops.length >= 2) {
+                // The backend now deterministically manages and returns the full route array.
+                messageStops = response.stops;
             }
 
             let finalDistanceText = response.total_distance_text;
@@ -206,7 +108,7 @@ const useChatStore = create((set, get) => ({
             // Track stops for confirmation flow
             set({
                 loading: false,
-                pendingStops: messageStops,
+                pendingStops: response.needs_confirmation ? (response.stops?.length > 0 ? response.stops : (get().pendingStops || [])) : [],
                 pendingTripId: response.trip_id || null,
                 needsConfirmation: response.needs_confirmation || false,
                 lastRoute: messageStops?.length > 0 ? { messageId: asstMsg.id, stops: messageStops } : get().lastRoute,
