@@ -120,21 +120,35 @@ const useChatStore = create((set, get) => ({
                 const lastStops = get().lastRoute.stops;
                 const newStops = response.stops;
 
-                // Build a position map of newly geocoded stops
+                // Match newly geocoded stops to their correct positions using parsedStops labels.
+                // The backend always returns position: 0 for partial updates so we cannot trust
+                // the position field — instead we match by finding which parsedStop label
+                // corresponds to a newly geocoded resolved address.
                 const newByPosition = {};
-                newStops.forEach(s => { newByPosition[s.position] = s; });
+                newStops.forEach(newStop => {
+                    // Find which index in parsedStops matches this newly geocoded stop's address
+                    const matchIdx = parsedStops.findIndex(ps => {
+                        const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                        const psNorm = normalize(ps.resolved);
+                        const nsNorm = normalize(newStop.resolved);
+                        return psNorm && nsNorm && (psNorm.includes(nsNorm) || nsNorm.includes(psNorm));
+                    });
+                    if (matchIdx !== -1) {
+                        newByPosition[matchIdx] = newStop;
+                    } else {
+                        // Fallback: use position field if label matching fails
+                        newByPosition[newStop.position] = newStop;
+                    }
+                });
 
-                // Also try to match by label if position mapping fails
                 messageStops = lastStops.map((old, idx) => {
                     if (newByPosition[idx]) {
-                        // Use the freshly geocoded stop for this position
                         return {
                             ...newByPosition[idx],
                             label: parsedStops[idx]?.label || newByPosition[idx].label,
                             position: idx,
                         };
                     }
-                    // Keep the existing stop with its real coordinates intact
                     return { ...old, position: idx };
                 });
 
