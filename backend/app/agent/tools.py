@@ -212,4 +212,99 @@ async def save_trip_tool(trip_data_json: str) -> str:
     finally:
         db.close()
 
+active_route_ctx: contextvars.ContextVar[List[Dict[str, Any]]] = contextvars.ContextVar("active_route", default=[])
+
+def get_current_route() -> List[Dict[str, Any]]:
+    return active_route_ctx.get()
+
+@tool("modify_route")
+async def modify_route_tool(action: str, position: int, query: str = "", place_name: str = "") -> str:
+    """
+    Modifies the current route by adding, removing, or replacing a stop.
+    IMPORTANT: This tool mechanically updates the array in the backend. 
+    You do NOT need to output the full route list in your text reply after using this.
+
+    Inputs:
+    - action: Must be exactly "add", "remove", or "replace".
+    - position: The 1-based index where the action should happen (1 is the first stop).
+    - query: For "add" or "replace", describe the new place to search for. For "remove", leave empty.
+    - place_name: The raw brand name of the place (e.g. "Walmart", "Home Depot"). Leave empty for "remove" or for a direct residential street address.
+    
+    Returns: Success message with the new place details, or error.
+    """
+    route = active_route_ctx.get()
+    
+    action = action.lower()
+    if action not in ["add", "remove", "replace"]:
+        return "Error: action must be 'add', 'remove', or 'replace'."
+        
+    # Convert from 1-indexed (user-facing) to 0-indexed (python array)
+    idx = int(position) - 1
+
+    if action == "remove":
+        if idx < 0 or idx >= len(route):
+            return f"Error: Cannot remove stop {position}. The route only has {len(route)} stops."
+        removed = route.pop(idx)
+        # Re-index the remaining stops
+        for i, stop in enumerate(route):
+            stop["position"] = i
+        return f"Successfully removed '{removed.get('label')}' from position {position}."
+
+    if action in ["add", "replace"]:
+        if not query:
+            return "Error: You must provide a query to search for the new place."
+            
+        # 1) Geocode the new place
+        user_city = user_city_ctx.get() or "Hicksville, NY"
+        geocoded = await geocoding_service.geocode(query, user_city=user_city)
+        if not geocoded.get("success"):
+            return f"Error: Could not find '{query}'. Ask the user for a more specific description."
+            
+        # Determine actual city from formatted_address for intelligent labeling
+        resolved_address = geocoded.get("formatted_address", "")
+        parts = [p.strip() for p in resolved_address.split(",")]
+        actual_city = ""
+        import re
+        for i, p in enumerate(parts):
+            if re.match(r'^[A-Z]{2}(\s+\d{5})?$', p.upper()):
+                if i > 0:
+                    actual_city = parts[i-1]
+                break
+
+        # Dynamic cross-country labeling natively without hardcoding
+        if place_name and actual_city:
+            final_label = f"{place_name.strip()} {actual_city}"
+        else:
+            final_label = query.strip()
+                    
+        new_stop = {
+            "label": final_label,
+            "resolved": resolved_address,
+            "lat": geocoded.get("lat"),
+            "lng": geocoded.get("lng"),
+            "note": None,
+            "position": idx # Will be updated during re-indexing
+        }
+        
+        if action == "replace":
+            if idx < 0 or idx >= len(route):
+                return f"Error: Cannot replace stop {position}. The route only has {len(route)} stops."
+            old_stop = route[idx]
+            route[idx] = new_stop
+            # Re-index just in case
+            for i, stop in enumerate(route):
+                stop["position"] = i
+            return f"Successfully replaced '{old_stop.get('label')}' at position {position} with '{new_stop['resolved']}'."
+            
+        elif action == "add":
+            # For add, we insert before the requested position.
+            if idx < 0:
+                idx = 0
+            route.insert(idx, new_stop)
+            # Re-index all stops
+            for i, stop in enumerate(route):
+                stop["position"] = i
+            return f"Successfully added '{new_stop['resolved']}' at position {position}."
+
+
 
