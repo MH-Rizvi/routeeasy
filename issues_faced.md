@@ -377,3 +377,158 @@ Without a hard quota limit on the GCP side, the RouteEasy backend was completely
 2. **`ApiUsage` Database Model:** Created a new `ApiUsage` model in `models.py` (`id`, `api_name`, `date`, `request_count`) that persists API call counts iteratively in the SQLite database.
 3. **Geocoding Service Enforcer:** Added a `_check_and_increment_quota()` function in `geocoding_service.py` that intercepts every geocoding query. It checks the database for today's requests specifically for the `google_geocoding` API. If requests are perfectly under 1,300, it increments the database and proceeds.
 4. **Instant Fast-Fail Barrier:** If the database `request_count` hits 1,300 for the day, the function returns False instantly returning an error block: `{"success": False, "error": "Daily map routing quota exceeded..."}`. This keeps monthly requests safely near ~39,000, ensuring 100% free usage entirely at the application layer.
+
+## Issue 24: Duration/Distance Showing "N/A" on Map Preview
+**Phase:** Core Routing API / Backend
+**Date Identified:** March 9, 2026
+**Severity:** MEDIUM (Missing UX Data)
+
+### Description
+The Route Card displayed "N/A" for the total trip duration and distance, despite Google Maps correctly rendering the polyline on the map.
+
+### Root Cause Analysis
+The backend Google Directions API handler was not correctly parsing and summing up all the individual "legs" of the route from the Google Maps JSON response, leading to null values being returned to the frontend.
+
+### Resolution Implemented
+1. **Leg Accumulation:** Fixed the backend parsing logic to correctly iterate over all route legs in the Google Directions response and sum the total distance and duration values.
+
+## Issue 25: Stale Coordinates Retained After Agent Geocoding Retries
+**Phase:** Core Agent Interaction / Geocoding
+**Date Identified:** March 9, 2026
+**Severity:** HIGH (Wrong Route Displayed)
+
+### Description
+When the AI agent attempted to find a location multiple times (retrying for a better result), the app would save the coordinates from the *first* failed attempt instead of the refined final attempt.
+
+### Root Cause Analysis
+The agent's geocoding loop was blindly appending results into a flat array structure, failing to gracefully overwrite the stale coordinate data from previous tool calls when a retry was successful.
+
+### Resolution Implemented
+1. **Latest-Result Persistence:** Rewrote the coordinate extraction logic in `core.py` to always overwrite and persist the *most recent* geocode result for any given route coordinate position, effectively dropping the first failed attempts.
+
+## Issue 26: Agent Inventing Distance / Duration Metrics in Chat Text
+**Phase:** LLM Behavior / Prompting
+**Date Identified:** March 9, 2026
+**Severity:** LOW (Misleading Hallucinations)
+
+### Description
+The agent was hallucinating trip distance and durations in its conversational reply (e.g. saying "That route is about 30 miles long") despite the Route Card directly beneath the chat natively displaying accurate real-time data from Google Maps. 
+
+### Root Cause Analysis
+Without explicit constraints, the LLM naturally attempts to estimate route distance based on its training weights rather than live data.
+
+### Resolution Implemented
+1. **Strict Prompt Constriction:** Added a direct rule in `prompts.py` instructing the agent to NEVER mention or estimate distance or duration in its text response.
+
+## Issue 27: Massive Unnecessary Terminal Debug Logs
+**Phase:** Development Cleanup
+**Date Identified:** March 9, 2026
+**Severity:** LOW (Log Pollution)
+
+### Description
+The backend was dumping massive JSON responses into the Railway/terminal logs on every single API request.
+
+### Root Cause Analysis
+Initial developer print statements used for early debugging were left active in production paths.
+
+### Resolution Implemented
+1. **Log Cleanup:** Removed leftover developer print statements from the backend services.
+
+## Issue 28: Agent Falsely Merging Chain Stores (Home Depot Jericho vs Syosset)
+**Phase:** Core Agent Interaction / Retry Logic
+**Date Identified:** March 9, 2026
+**Severity:** HIGH (Stops Silently Dropped)
+
+### Description
+When the user requested a route involving multiple locations of the same chain store (e.g., "Home Depot Jericho" and "Home Depot Syosset"), the agent's retry logic falsely flagged them as the identical place, dropping one of the stops.
+
+### Root Cause Analysis
+The retry detection code in `core.py` was using loose word-overlap matching. Because both locations shared the words "Home Depot" and "NY", the logic mistakenly grouped them as progressive retries of a single stop.
+
+### Resolution Implemented
+1. **Strict Substring Matching:** Replaced the token overlap check with strict string normalization and substring matching. A geocoding attempt is now only considered a retry if the query is a pure substring block of the new query, preserving distinct branches natively.
+
+## Issue 29: Loop Route Silent Elimination of Return Stop
+**Phase:** Core Agent Interaction / Retry Logic
+**Date Identified:** March 9, 2026
+**Severity:** HIGH (Incomplete Routes)
+
+### Description
+For loop trips starting and ending at the exact same location (e.g., Hicksville Train Station → Trader Joe's → Hicksville Train Station), the final return stop was silently eliminated from the route.
+
+### Root Cause Analysis
+The return "Hicksville" stop was falsely detected by the retry logic as a retry attempt of the first "Hicksville Train Station" stop since their names overlap. This caused the system to overwrite the first stop instead of appending the final stop.
+
+### Resolution Implemented
+1. **Length-Ratio Guardrail:** Added a strict length ratio check to the retry validator. If two matching address labels are drastically different in text length, they are recognized as distinct stops in a looped route.
+
+## Issue 30: Agent Abandoning Route on Single Geocode Failure
+**Phase:** Core Agent Interaction
+**Date Identified:** March 9, 2026
+**Severity:** MEDIUM (Frustrating UX)
+
+### Description
+When processing a route containing 3+ stops, if the agent hit a geocoding failure on the very first stop, it would instantly abandon the entire task and ask the user for help without mapping the remaining stops.
+
+### Root Cause Analysis
+The system prompt indirectly encouraged an "early exit block" by telling the agent to immediately ask the driver for a specific description if geocoding failed.
+
+### Resolution Implemented
+1. **Batch Geocoding Override:** Updated the system prompt in `prompts.py` to command the agent: *"Do not stop early just because one stop failed!"* The agent now finishes processing all remaining stops sequence before reporting failures.
+
+## Issue 31: Agent Fabricating Fake Addresses During Corrections
+**Phase:** LLM Behavior / Geocoding
+**Date Identified:** March 9, 2026
+**Severity:** CRITICAL (Silent Data Corruption)
+
+### Description
+When the user asked to correct a specific stop mid-route, the agent would sometimes rewrite the route list with a perfectly hallucinated, fake street address pulled from its memory weights without firing the geocoding tool.
+
+### Root Cause Analysis
+The LLM preferred the path of least resistance. It realized it already knew where places roughly were, fabricating the address to save "tool calls".
+
+### Resolution Implemented
+1. **Absolute Tool Forcing Rule:** Added a strict "`Never Invent Addresses`" rule in `prompts.py`. The agent is explicitly ordered to fire a `geocode_stop` action for every correction to verify real-time mapping existence.
+
+## Issue 32: NYC City Hall Phantom Coordinates Poisoning Valid Routes
+**Phase:** Frontend State Mapping 
+**Date Identified:** March 9, 2026
+**Severity:** CRITICAL (Google API Crash / "N/A" Errors)
+
+### Description
+Whenever a single stop was corrected mid-stream by the agent, the un-edited stops on the route map would randomly snap to coordinates in New York City (40.7128, -74.006), breaking the Google Directions call.
+
+### Root Cause Analysis
+When doing a partial update, the frontend `chatStore.js` `sendMessage` function attempted to stitch the new stop with the remaining existing stops by reverse-fuzzy-matching them by name. If the name match failed, it silently fell back to injecting hardcoded NYC coordinates for safety.
+
+### Resolution Implemented
+1. **Merge-By-Coordinate Retention:** Removed the NYC coordinate fallback block entirely. The frontend state manager now actively retains the existing true GPS coordinates of any unmodified stops during a partial edit.
+
+## Issue 33: ChatStore Partial Update Position Mapping Overwrite Bug
+**Phase:** Frontend State Management
+**Date Identified:** March 9, 2026
+**Severity:** HIGH (Wrong Stops Deleted)
+
+### Description
+When a user asked the agent to correct "Stop 3", the route would visually glitch: Stop 1 would suddenly be overwritten by the new Stop 3 data, while the old broken Stop 3 remained untouched.
+
+### Root Cause Analysis
+When the backend processed a "Partial Update" containing only 1 newly geocoded stop, it rightfully returned an array of Length 1 where the internal `position` field was `0`. The frontend blindly mapped this returned `position: 0` directly to Index 0 of the existing route UI, destroying the first stop.
+
+### Resolution Implemented
+1. **Label-Based Target Interpolation:** Rewrote the mapping block in `chatStore.js`. Instead of trusting the backend's arbitrary 0-index on partial arrays, the frontend manually evaluates string inclusion from the returned labels to lock the new stop directly into its authentic historical position index prior to merging.
+
+## Issue 34: Generic City Fallback Crashing Chain Store Routing
+**Phase:** Core Routing API / Geolocation
+**Date Identified:** March 9, 2026
+**Severity:** CRITICAL (Unroutable Stops)
+
+### Description
+For specific chain stores requested without specific street components (e.g. "Trader Joe's Westbury, NY"), the Google Geocoding API would return the generic center coordinates of "Westbury, NY, USA" because it could not nail down a street. This lack of precision broke driving directions.
+
+### Root Cause Analysis
+The standard Geocoding API is optimized for street addresses, not establishment context querying.
+
+### Resolution Implemented
+1. **Generic Reject Filter:** Modified `_is_invalid_generic` in `geocoding_service.py` to instantly reject any result that lacks a street number or explicit place name.
+2. **Google Places TextSearch Fallback (ATTEMPT 3):** Added a third fallback layer to the geocoding service. If the standard geocoder returns only a generic city-blob, the backend automatically fails-over to the `Google Places textsearch API` (`type: establishment`) cleanly resolving branch addresses.
