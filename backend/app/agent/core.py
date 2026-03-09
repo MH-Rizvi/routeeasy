@@ -165,9 +165,18 @@ def _extract_stops_from_steps(intermediate_steps: list) -> List[Dict[str, Any]]:
                 # and would require hardcoding stopwords that don't generalise internationally.
                 for pos, recent_label in reversed(recent_labels[-3:]):
                     if label_lower in recent_label or recent_label in label_lower:
-                        is_retry = True
-                        retry_position = pos
-                        break
+                        # Guard against false positives on loop routes where the final stop
+                        # shares a city name with an earlier stop (e.g. "Hicksville" matching
+                        # "Hicksville Train Station, Hicksville, NY"). A genuine retry is a
+                        # refinement of the same query, so the two labels should be close in
+                        # length. If the shorter label is less than 60% the length of the
+                        # longer one, treat them as different stops, not a retry.
+                        shorter = min(len(label_lower), len(recent_label))
+                        longer = max(len(label_lower), len(recent_label))
+                        if longer > 0 and (shorter / longer) >= 0.6:
+                            is_retry = True
+                            retry_position = pos
+                            break
 
                 if is_retry and retry_position >= 0:
                     # Overwrite the previous result for this position
