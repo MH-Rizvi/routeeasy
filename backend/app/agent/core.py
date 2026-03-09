@@ -12,7 +12,7 @@ from langchain.prompts import PromptTemplate  # pyright: ignore[reportMissingImp
 
 from app.agent.output_parser import RouteEasyOutputParser
 
-from app.agent.callbacks import LLMOpsCallbackHandler
+from app.agent.callbacks import LLMOpsCallbackHandler # pyright: ignore[reportMissingImports]
 from app.agent.prompts import SYSTEM_PROMPT_v1
 from app.agent.tools import (
     geocode_stop_tool,
