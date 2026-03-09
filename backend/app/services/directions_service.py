@@ -34,15 +34,12 @@ async def calculate_route_stats(stops: List[Dict[str, float]]) -> Dict[str, str]
         }
         if waypoint_str:
             params["waypoints"] = waypoint_str
-        print('STOPS RECEIVED:', stops)
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
                 "https://maps.googleapis.com/maps/api/directions/json", params=params
             )
         response.raise_for_status()
         data = response.json()
-
-        print("DIRECTIONS API RESPONSE:", data)
 
         if data.get('status') == 'OK':
             legs = data['routes'][0]['legs']
@@ -89,7 +86,6 @@ async def calculate_route_miles(stops: List[Dict[str, float]]) -> float:
         }
         if waypoint_str:
             params["waypoints"] = waypoint_str
-        print('STOPS RECEIVED:', stops)
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
                 "https://maps.googleapis.com/maps/api/directions/json", params=params

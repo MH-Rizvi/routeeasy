@@ -363,9 +363,15 @@ async def _run_agent_internal(
             # Fallback: parse stops from the reply text (coordinates in Final Answer)
             stops_reply = _extract_stops_from_reply(reply)
 
-            # Prefer whichever list has more stops, as agent replies often contain the entire 
-            # updated route whereas intermediate tools only reflect newly added stops this turn.
-            stops = stops_reply if len(stops_reply) >= len(stops_tools) else stops_tools
+            # ALWAYS prefer stops_tools — they contain real lat/lng from the Google Geocoding API.
+            # stops_reply parses addresses from the agent's text reply which carries no real coordinates.
+            # When a user corrects a stop mid-conversation, the agent only re-geocodes that one stop,
+            # so stops_tools has 1 entry while stops_reply has all N entries parsed from text.
+            # The old logic (prefer whichever has more entries) caused stops_reply to win, injecting
+            # stale NYC default coordinates (40.7128, -74.006) into the stops array and making
+            # calculate_route_stats() return N/A for distance and duration.
+            # Only fall back to stops_reply if stops_tools is completely empty (e.g. trip loaded from saved data).
+            stops = stops_tools if stops_tools else stops_reply
 
             # We no longer strip coordinates from the reply text here!
             # If we strip them here, the frontend won't save them in conversation history,
