@@ -240,8 +240,16 @@ async def geocode(query: str, user_city: str) -> Dict[str, Any]:
             return None
 
     def _is_invalid_generic(fmt_addr: str) -> bool:
-        """Reject results that are just a city name, not a specific place."""
+        """Reject results that are just a city/region name, not a specific place."""
+        if not fmt_addr:
+            return True
         if "City Hall" in fmt_addr:
+            return True
+        # Reject results with no street number or street name — these are city/region level only.
+        # A valid specific address always contains a digit (street number) or a named place.
+        # Pattern: "Westbury, NY, USA" or "Long Island, NY, USA" — no street component at all.
+        parts = [p.strip() for p in fmt_addr.split(",")]
+        if len(parts) <= 3 and not any(char.isdigit() for char in parts[0]):
             return True
         return False
 
@@ -281,7 +289,45 @@ async def geocode(query: str, user_city: str) -> Dict[str, Any]:
             if r.get("geometry", {}).get("location", {}).get("lat") is not None:
                 return _parse_res(r, "state_level")
 
-    # If both attempts fail
+    # ATTEMPT 3: Google Places Text Search fallback for chain stores and named places
+    # Fires when both geocoding attempts returned city-level results with no street address.
+    # Uses the Places textsearch API which is better at resolving chain store locations
+    # to a specific branch near the user's registered city.
+    try:
+        places_params = {
+            "query": query.strip(),
+            "key": settings.google_maps_api_key,
+            "type": "establishment",
+        }
+        if lat_center is not None and lng_center is not None:
+            places_params["location"] = f"{lat_center},{lng_center}"
+            places_params["radius"] = "50000"
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            places_resp = await client.get(
+                "https://maps.googleapis.com/maps/api/place/textsearch/json",
+                params=places_params,
+            )
+        if places_resp.status_code == 200:
+            places_data = places_resp.json()
+            places_results = places_data.get("results", [])
+            if places_results:
+                best = places_results[0]
+                loc = best.get("geometry", {}).get("location", {})
+                formatted = best.get("formatted_address", best.get("name", ""))
+                if loc.get("lat") and not _is_invalid_generic(formatted):
+                    return {
+                        "success": True,
+                        "lat": float(loc["lat"]),
+                        "lng": float(loc["lng"]),
+                        "formatted_address": formatted,
+                        "confidence": "high",
+                        "error": None,
+                    }
+    except Exception as e:
+        logger.warning("Places API fallback failed: %s", e)
+
+    # If all attempts fail
     return {
         "success": False,
         "lat": None,
