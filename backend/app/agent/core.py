@@ -157,26 +157,32 @@ def _extract_stops_from_steps(intermediate_steps: list) -> List[Dict[str, Any]]:
                 is_retry = False
                 retry_position = -1
 
-                # A geocode call is a retry ONLY if one label is a pure substring of the other.
-                # This means the agent is refining the same location query with more detail.
-                # Example retry: "Trader Joe's Westbury NY" → "Trader Joe's Westbury Long Island NY"
+                # A geocode call is a retry if all words of the shorter label are present in the
+                # longer label. This is more robust than strict substring which fails on commas.
+                # Example retry: "Trader Joe's Westbury NY" -> "Trader Joe's Westbury, Westbury, NY"
+                # Both have the same token set, so it passes.
                 # Example NOT retry: "Home Depot Jericho NY" vs "Home Depot Syosset NY"
-                # Word-overlap counting is intentionally avoided — it breaks on chain stores
-                # and would require hardcoding stopwords that don't generalise internationally.
+                # Neither is a subset of the other, so it correctly fails.
+                import re
+                
+                label_tokens = set(re.findall(r'\b\w+\b', label_lower))
+
                 for pos, recent_label in reversed(recent_labels[-3:]):
-                    if label_lower in recent_label or recent_label in label_lower:
-                        # Guard against false positives on loop routes where the final stop
-                        # shares a city name with an earlier stop (e.g. "Hicksville" matching
-                        # "Hicksville Train Station, Hicksville, NY"). A genuine retry is a
-                        # refinement of the same query, so the two labels should be close in
-                        # length. If the shorter label is less than 60% the length of the
-                        # longer one, treat them as different stops, not a retry.
-                        shorter = min(len(label_lower), len(recent_label))
-                        longer = max(len(label_lower), len(recent_label))
-                        if longer > 0 and (shorter / longer) >= 0.6:
-                            is_retry = True
-                            retry_position = pos
-                            break
+                    recent_tokens = set(re.findall(r'\b\w+\b', recent_label))
+                    
+                    if label_tokens and recent_tokens:
+                        if label_tokens.issubset(recent_tokens) or recent_tokens.issubset(label_tokens):
+                            # Guard against false positives on loop routes where the final stop
+                            # shares a city name with an earlier stop. A genuine retry is a
+                            # refinement of the same query, so the two labels should be close in
+                            # length. If the shorter label is less than 60% the length of the
+                            # longer one, treat them as different stops, not a retry.
+                            shorter = min(len(label_lower), len(recent_label))
+                            longer = max(len(label_lower), len(recent_label))
+                            if longer > 0 and (shorter / longer) >= 0.6:
+                                is_retry = True
+                                retry_position = pos
+                                break
 
                 if is_retry and retry_position >= 0:
                     # Overwrite the previous result for this position
