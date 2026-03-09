@@ -100,42 +100,74 @@ const useChatStore = create((set, get) => ({
             });
 
             let messageStops = null;
-            if (response.stops && parsedStops.length >= 2 && response.stops.length === parsedStops.length) {
-                // Perfect mapping: backend successfully parsed the exact route from the agent's text.
-                // Use the backend's precise coordinates natively, bypassing flaky string matching!
-                messageStops = response.stops.map((bs, idx) => ({
-                    ...bs,
-                    label: parsedStops[idx].label, // Give frontend label precedence for display
-                    resolved: parsedStops[idx].resolved || bs.resolved
-                }));
+
+            if (response.stops && response.stops.length >= 2) {
+                // Backend returned a full set of stops with real coordinates — use them directly.
+                // If parsedStops has matching count, use frontend display labels for cleaner UX.
+                if (parsedStops.length === response.stops.length) {
+                    messageStops = response.stops.map((bs, idx) => ({
+                        ...bs,
+                        label: parsedStops[idx]?.label || bs.label,
+                        resolved: parsedStops[idx]?.resolved || bs.resolved,
+                    }));
+                } else {
+                    messageStops = response.stops;
+                }
+            } else if (response.stops && response.stops.length > 0 && get().lastRoute?.stops?.length > 0) {
+                // Partial update — agent only geocoded the corrected stop(s).
+                // Merge by position: new geocoded stops override their position in lastRoute.
+                // This prevents NYC default coordinates from appearing for unchanged stops.
+                const lastStops = get().lastRoute.stops;
+                const newStops = response.stops;
+
+                // Build a position map of newly geocoded stops
+                const newByPosition = {};
+                newStops.forEach(s => { newByPosition[s.position] = s; });
+
+                // Also try to match by label if position mapping fails
+                messageStops = lastStops.map((old, idx) => {
+                    if (newByPosition[idx]) {
+                        // Use the freshly geocoded stop for this position
+                        return {
+                            ...newByPosition[idx],
+                            label: parsedStops[idx]?.label || newByPosition[idx].label,
+                            position: idx,
+                        };
+                    }
+                    // Keep the existing stop with its real coordinates intact
+                    return { ...old, position: idx };
+                });
+
+                // Append any new stops that go beyond the original route length
+                newStops.forEach(s => {
+                    if (s.position >= lastStops.length) {
+                        messageStops.push(s);
+                    }
+                });
             } else if (parsedStops.length >= 2) {
-                // Fallback manual recovery for edge cases
-                const allKnownStops = [...(response.stops || []), ...(get().lastRoute?.stops || [])];
+                // Last resort: parse from text only — no coordinate data available at all.
+                // Use lastRoute stops as coordinate source via fuzzy match.
+                const allKnownStops = [...(get().lastRoute?.stops || [])];
+                const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
                 messageStops = parsedStops.map((ps, idx) => {
-                    // Robust fuzzy match ignoring punctuation and capitalization
-                    const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
                     const pNorm = normalize(ps.label);
                     const pResNorm = normalize(ps.resolved);
-
                     const known = allKnownStops.find(ks => {
                         const kNorm = normalize(ks.label);
                         const kResNorm = normalize(ks.resolved);
                         return (kNorm && pNorm && (kNorm.includes(pNorm) || pNorm.includes(kNorm))) ||
                             (kResNorm && pResNorm && (kResNorm.includes(pResNorm) || pResNorm.includes(kResNorm)));
                     });
-
                     return {
                         label: ps.label,
                         resolved: ps.resolved,
-                        lat: known ? known.lat : 40.7128,
-                        lng: known ? known.lng : -74.0060,
+                        lat: known?.lat ?? null,
+                        lng: known?.lng ?? null,
                         note: null,
-                        position: idx
+                        position: idx,
                     };
-                });
-            } else if (response.stops && response.stops.length >= 2) {
-                messageStops = response.stops;
+                }).filter(s => s.lat !== null); // Drop stops with no coordinates entirely
             }
 
             const asstMsg = _addMessage('assistant', finalReply, messageStops, response.total_distance_text, response.total_duration_text);
