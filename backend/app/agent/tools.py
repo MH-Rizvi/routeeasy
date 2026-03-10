@@ -154,8 +154,8 @@ def search_trips_by_stop(query: str) -> str:
             trips_found[trip_id]["stops"].append(stop_label)
             
         output_lines = [f"Found {len(trips_found)} trip(s) with '{query}':"]
-        for t_data in trips_found.values():
-            output_lines.append(f"- '{t_data['name']}' (stops: {', '.join(t_data['stops'])})")
+        for t_id, t_data in trips_found.items():
+            output_lines.append(f"- '{t_data['name']}' (trip_id: {t_id}, stops: {', '.join(t_data['stops'])})")
             
         return "\n".join(output_lines)
     finally:
