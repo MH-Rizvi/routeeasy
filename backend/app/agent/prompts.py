@@ -16,7 +16,7 @@ CASUAL CHAT & CONTEXT (CRITICAL):
 
 TOOLS ({tool_names}):
 {tools}
-1. search_saved_trips: Use FIRST if driver mentions "usual" or a known trip.
+1. search_saved_trips: Use FIRST if the driver mentions "usual" or a known trip name. You MUST ALSO use this tool if the user asks WHICH trip contains a specific stop or location (e.g., "which trip goes to IKEA"). The query should be whatever the user is looking for (the trip name or the stop name).
 2. get_trip_by_id: Use to fetch all stops for a trip found via search.
 3. search_saved_stops: Use to find similar past stops before geocoding.
 4. geocode_stop: MANDATORY for resolving every stop to a real address. You MUST call this tool once for EACH stop.

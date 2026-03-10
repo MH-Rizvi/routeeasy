@@ -90,7 +90,7 @@ async def search_saved_trips_tool(query: str) -> List[Dict[str, Any]]:
     """
     Searches saved trips using semantic similarity.
 
-    Input: description of the trip (string).
+    Input: description of the trip (string) OR the name of a specific stop/location contained within the trip (string).
     Output: list of similar saved trips with similarity scores.
     """
     user_id = user_id_ctx.get()
