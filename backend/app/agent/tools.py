@@ -104,6 +104,9 @@ def search_trips_by_stop(query: str) -> str:
     """Use this tool when the user asks which trip contains a specific stop or location. 
     Examples: 'which trip has IKEA', 'do any of my trips go to Westbury', 'which route stops at Home Depot'.
     Do NOT use for loading a trip by name — use search_saved_trips for that."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     user_id = user_id_ctx.get()
     if user_id is None:
         return "Error: Could not determine user ID."
@@ -118,6 +121,11 @@ def search_trips_by_stop(query: str) -> str:
         
         # Auto-handle simple plurals ("hospitals" -> "hospital")
         singular_query = query[:-1] if query.endswith('s') and len(query) > 4 else query
+        
+        logger.info(
+            "search_trips_by_stop: query=%r, short_query=%r, singular_query=%r, user_id=%r",
+            query, short_query, singular_query, str(user_id)
+        )
         
         sql = text("""
             SELECT DISTINCT trips.id, trips.name, stops.label, stops.resolved
@@ -136,8 +144,10 @@ def search_trips_by_stop(query: str) -> str:
             "query": f"%{query}%", 
             "short_query": f"%{short_query}%", 
             "singular_query": f"%{singular_query}%",
-            "user_id": user_id
+            "user_id": str(user_id)
         }).fetchall()
+        
+        logger.info("search_trips_by_stop: got %d raw rows", len(results))
         
         if not results:
             return f"No saved trips contain a stop matching '{query}'"
