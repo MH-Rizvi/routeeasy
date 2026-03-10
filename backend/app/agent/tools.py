@@ -90,13 +90,60 @@ async def search_saved_trips_tool(query: str) -> List[Dict[str, Any]]:
     """
     Searches saved trips using semantic similarity.
 
-    Input: description of the trip (string) OR the name of a specific stop/location contained within the trip (string).
+    Input: description of the trip (string).
     Output: list of similar saved trips with similarity scores.
     """
     user_id = user_id_ctx.get()
     if user_id is None:
         return []
     return vector_service.search_trips(query, user_id, top_k=3)
+
+
+@tool
+def search_trips_by_stop(query: str) -> str:
+    """Use this tool when the user asks which trip contains a specific stop or location. 
+    Examples: 'which trip has IKEA', 'do any of my trips go to Westbury', 'which route stops at Home Depot'.
+    Do NOT use for loading a trip by name — use search_saved_trips for that."""
+    user_id = user_id_ctx.get()
+    if user_id is None:
+        return "Error: Could not determine user ID."
+        
+    from sqlalchemy import text
+    from app.database import SessionLocal
+    
+    db = SessionLocal()
+    try:
+        sql = text("""
+            SELECT DISTINCT trips.id, trips.name, stops.label, stops.resolved
+            FROM trips 
+            JOIN stops ON stops.trip_id = trips.id 
+            WHERE stops.label ILIKE :query 
+            AND trips.user_id = :user_id
+        """)
+        
+        results = db.execute(sql, {"query": f"%{query}%", "user_id": user_id}).fetchall()
+        
+        if not results:
+            return f"No saved trips contain a stop matching '{query}'"
+            
+        # Group by trip
+        trips_found = {}
+        for row in results:
+            trip_id = row[0]
+            trip_name = row[1]
+            stop_label = row[2]
+            
+            if trip_id not in trips_found:
+                trips_found[trip_id] = {"name": trip_name, "stops": []}
+            trips_found[trip_id]["stops"].append(stop_label)
+            
+        output_lines = [f"Found {len(trips_found)} trip(s) with '{query}':"]
+        for t_data in trips_found.values():
+            output_lines.append(f"- '{t_data['name']}' (stops: {', '.join(t_data['stops'])})")
+            
+        return "\n".join(output_lines)
+    finally:
+        db.close()
 
 
 @tool("get_trip_by_id")

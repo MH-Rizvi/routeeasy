@@ -100,24 +100,12 @@ def add_stop(
 
 def add_trip(trip_id: int, name: str, stops: List[Dict[str, Any]], user_id: str) -> str:
     """
-    Embed and store a trip using a hybrid approach.
-    
-    Upserts 2 separate documents per trip:
-    1. A document for the pure trip name.
-    2. A document for the explicit list of stops.
-    Both carry the identical metadata pointing to the same trip_id.
+    Embed and store a trip by name.
     """
-    stop_labels = " ".join(str(s.get("label", "")) for s in stops)
-    
-    # 1. Name document
     doc_id_name = f"trip_{trip_id}_name"
     doc_name = f"Trip name: {name}".strip()
     
-    # 2. Stops document
-    doc_id_stops = f"trip_{trip_id}_stops"
-    stop_labels_comma = ", ".join(str(s.get("label", "")) for s in stops)
-    doc_stops = f"Stops for {name}: {stop_labels_comma}".strip()
-    
+    stop_labels = " ".join(str(s.get("label", "")) for s in stops)
     metadata = {
         "trip_id": trip_id,
         "name": name,
@@ -126,10 +114,10 @@ def add_trip(trip_id: int, name: str, stops: List[Dict[str, Any]], user_id: str)
     }
 
     _get_trips_collection(user_id).upsert(
-        ids=[doc_id_name, doc_id_stops],
-        embeddings=[embed(doc_name), embed(doc_stops)],
-        documents=[doc_name, doc_stops],
-        metadatas=[metadata, metadata],
+        ids=[doc_id_name],
+        embeddings=[embed(doc_name)],
+        documents=[doc_name],
+        metadatas=[metadata],
     )
     
     return f"trip_{trip_id}"
@@ -177,24 +165,19 @@ def search_stops(query: str, user_id: str, top_k: int = 3) -> List[Dict[str, Any
 
 def search_trips(query: str, user_id: str, top_k: int = 3) -> List[Dict[str, Any]]:
     """
-    Semantic search over saved trips. 
-    Queries more results under the hood to deduplicate hybrid matching (name + stops doc) per trip.
+    Semantic search over saved trips by trip name.
     """
-    # Query extra records in case both docs for the same trip match highly
-    # Query deep enough so short, low-confidence semantic keyword matches ("IKEA") aren't truncated before deduplication.
     results = _get_trips_collection(user_id).query(
         query_embeddings=[embed(query)],
-        n_results=top_k * 10,
+        n_results=top_k * 3,  # slight buffer for deduplication if needed
     )
     
     formatted = _format_results(results)
     
-    # Deduplicate by trip_id so we only return the highest-scoring doc per trip
     deduplicated = []
     seen_trip_ids = set()
     
     for item in formatted:
-        # Require a minimum similarity threshold
         sim = item.get("similarity", 0.0)
         if sim is None or sim < 0.3:
             continue
