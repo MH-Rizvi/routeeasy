@@ -5,7 +5,7 @@
 
 ## What This Project Is
 
-**RoutAura** is a Progressive Web App for bus and professional drivers. Drivers describe their routes in plain conversational language, a **LangChain ReAct agent** orchestrates the AI logic (geocoding, vector search, semantic recall), and the app launches navigation in Google Maps or Apple Maps. Trips are saved to both SQLite and ChromaDB for structured retrieval and semantic fuzzy recall.
+**RoutAura** is a Progressive Web App for bus and professional drivers. Drivers describe their routes in plain conversational language, a **LangChain ReAct agent** orchestrates the AI logic (geocoding, SQL fuzzy search, state mutation), and the app launches navigation in Google Maps or Apple Maps. Trips are saved to PostgreSQL for structured retrieval and high-performance SQL `ILIKE` fuzzy recall. ChromaDB is used strictly for the History Q&A RAG pipeline.
 
 This project is simultaneously a **useful real-world app** and a **portfolio showcase** for GenAI / Agentic AI engineering roles. Every architectural decision is intentional and maps to skills in the target job descriptions (LangChain, ChromaDB, RAG, LLMOps, Responsible AI).
 
@@ -37,11 +37,11 @@ These decisions must not be changed without explicit user instruction:
 **1. LangChain ReAct Agent is the core AI layer.**  
 Do NOT call the Groq API directly for trip parsing. ALL AI orchestration goes through the LangChain `AgentExecutor` in `backend/app/agent/core.py`. The agent decides which tools to call. This is the most important architectural decision in the project.
 
-**2. ChromaDB + fastembed for all vector operations.**  
-Do NOT use OpenAI embeddings (costs money per call). Use `BAAI/bge-small-en-v1.5` from `fastembed` — it runs locally via ONNX runtime with zero API cost and low RAM requirements. Do NOT use Pinecone or any hosted vector DB for V1 — ChromaDB persists to disk locally.
+**2. ChromaDB + fastembed for History RAG only.**  
+Do NOT use OpenAI embeddings. Use `BAAI/bge-small-en-v1.5` from `fastembed` for local vector execution. ChromaDB is strictly reserved for the History Q&A feature (`/rag/query`). Do NOT use ChromaDB for trip or stop name searches.
 
-**3. Hybrid storage: SQLite for structured data, ChromaDB for semantic data.**  
-Every trip and stop is stored in BOTH databases. SQLite holds the authoritative structured record (IDs, coordinates, timestamps). ChromaDB holds the embeddings for semantic search. The `chroma_id` field on SQLite records links the two. When deleting, always delete from both.
+**3. Source of Truth: Supabase PostgreSQL.**  
+PostgreSQL holds all authoritative trip and stop data. Fuzzy search for trips and stops is implemented via SQL `ILIKE` pattern matching in `tools.py`. We no longer dual-write trips or stops to ChromaDB. The only things in ChromaDB are historical trip logs for RAG.
 
 **4. No custom navigation.**  
 We do NOT build turn-by-turn navigation. We build Google Maps / Apple Maps deep link URLs and open them with `window.open()`. The navigation happens entirely in external apps.
@@ -53,7 +53,7 @@ Every user message must pass through `moderation_service.is_safe()` before reach
 The `LLMOpsCallbackHandler` is always attached to the `AgentExecutor`. RAG pipeline calls must also be logged. The `llm_logs` table must have a row for every LLM call made by the system.
 
 **7. User authentication and data isolation is required (Phase 17+).**  
-All users must sign up/login. JWTs use a 30m access/7d refresh format and are stored in memory, not localStorage. All SQLite queries and ChromaDB collections (`saved_trips_{user_id}`, etc.) must be dynamically scoped/namespaced to the logged-in user.
+All users must sign up/login. JWTs use a 30m access/7d refresh format and are stored in memory, not localStorage. All PostgreSQL queries and ChromaDB collections (`trip_history_{user_id}`) must be dynamically scoped/namespaced to the logged-in user.
 
 **8. Public Landing Page vs Authenticated App.**  
 The root route `/` is a public marketing Landing Page. The authenticated app begins at `/home` (and includes `/chat`, `/trips`, etc). Logged-in users visiting `/` are redirected to `/home`. 
@@ -92,24 +92,18 @@ async def chat(request: AgentChatRequest, db: Session = Depends(get_db)):
 ```python
 # services/trips_service.py
 async def create_trip(db: Session, trip_data: TripCreate) -> Trip:
-    # 1. Write to SQLite
+    # 1. Write to PostgreSQL
     db_trip = models.Trip(name=trip_data.name, notes=trip_data.notes)
     db.add(db_trip)
     db.flush()  # Get ID before committing
     
-    # 2. Write stops to SQLite
+    # 2. Write stops to PostgreSQL
     for stop_data in trip_data.stops:
         db_stop = models.Stop(trip_id=db_trip.id, **stop_data.dict())
         db.add(db_stop)
-        db.flush()
-        
-        # 3. Write each stop to ChromaDB
-        chroma_id = vector_service.add_stop(db_stop.id, db_trip.id, ...)
-        db_stop.chroma_id = chroma_id
     
-    # 4. Write trip to ChromaDB
-    chroma_id = vector_service.add_trip(db_trip.id, trip_data.name, trip_data.stops)
-    db_trip.chroma_id = chroma_id
+    # 3. NO ChromaDB dual-write for trips/stops!
+    # (Trip search is handled via SQL ILIKE in tools.py)
     
     db.commit()
     db.refresh(db_trip)
@@ -209,7 +203,7 @@ def format_history(raw_history: list[dict]) -> list:
 
 **Similarity score from distances:** ChromaDB returns `distances` (lower = more similar for cosine). Convert to similarity: `similarity = 1 - distance`. Scores above 0.7 are usually good matches; below 0.5 are likely noise.
 
-**Deleting documents:** When a trip is deleted, call `collection.delete(ids=[chroma_id])` on both `saved_trips` and `saved_stops` collections. Use the `chroma_id` stored in SQLite.
+**Deleting documents:** When a trip is deleted, the vector data in `trip_history` remains for RAG purposes unless the entire account is deleted. Trip and stop PostgreSQL rows are purged via cascading deletes.
 
 **Embedding at startup:** The fastembed model takes a few seconds to load on first import. Load it once at module level in `vector_service.py`, not inside each function call. FastAPI startup will be slightly slow but subsequent calls will be fast.
 

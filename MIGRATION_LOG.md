@@ -161,3 +161,19 @@ Not every subcomponent needed refactoring:
 - **Type Cascading**: Moving from incremental `<Integer>` ids to complex `<UUID>` identifiers mandated recursive `str` type alterations spreading heavily through our secondary layer Service code components and Router parameter matrices.
 - **SQLAlchemy Class Defections**: Wiping a core definition class like `models.User` heavily forces changes in all models pointing backward structurally (removing `relationships()`). This mandates cleaning Router type hints asserting against custom `User` properties.
 - **ChromaDB Drift**: Wiping backend records mandates ensuring `vector_service` code logic purges corresponding embedding documents effectively. `sync_chroma_with_sql()` had to be refactored to verify valid UUID allocations inside directory namespaces and switch validation logic exclusively against the secondary `models.UserProfile`, ensuring robust garbage collection logic execution.
+
+## 10. Phase 26: ChromaDB to PostgreSQL Search Migration
+
+To ensure 100% search reliability in ephemeral cloud environments (like Railway where local filesystems reset), we migrated trip and stop searches from vector-based similarity to direct PostgreSQL pattern matching.
+
+### Key Changes:
+- **`search_saved_trips_tool`**: Rewritten to use SQL `ILIKE` matching on `trips.name` instead of ChromaDB vector retrieval.
+- **`search_trips_by_stop`**: A new, high-performance tool that searches both `stops.label` and `stops.resolved` via SQL `ILIKE`. 
+- **Query Normalization**: Implemented server-side normalization to handle plurals (e.g., "hospitals" → "hospital") and multi-word query refinement.
+- **Vector Service Deconstruction**: Stubbed out `add_trip`, `delete_trip`, and `search_trips` in `vector_service.py`. Trip and stop data is no longer embedded or stored in ChromaDB.
+- **History Q&A RAG Persistence**: ChromaDB is now strictly reserved for the History Q&A feature, where semantic retrieval across high-volume chat logs provides the most value.
+
+### Benefits:
+- **Reliability**: Search results are now 100% consistent with the relational database.
+- **Performance**: Direct SQL queries avoid the latency of local embedding generation and vector distance calculations.
+- **Maintenance**: Eliminated synchronization bugs and "stale vector" orphans during trip deletion.

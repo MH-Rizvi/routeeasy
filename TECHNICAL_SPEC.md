@@ -21,7 +21,8 @@
 | **Primary LLMs** | Groq API (`llama-3.3-70b`) | Latest | Intensive reasoning capabilities executing logic natively around <800ms API bounds |
 | **Fallback LLMs** | Google Gemini (`gemini-2.5-flash`) | Latest | `groq_rotator` implementation preventing system crashes processing 429 logic blocks |
 | **Embeddings** | fastembed (`BAAI/bge-small-en-v1.5`) | Latest | Lightweight ONNX, natively embedded directly across Railway |
-| **Vector DB** | ChromaDB | 0.6+ | Local-first semantic arrays indexing cosine boundaries natively |
+| **Vector DB** | ChromaDB | 0.6+ | Local-first semantic arrays for History RAG and QA |
+| **Search Engine** | PostgreSQL SQL `ILIKE` | — | Fuzzy pattern matching for trips and stops |
 | **Relational DB** | Supabase PostgreSQL | Latest | Cloud persistence, identity brokering, robust relational binding queries natively |
 | **Auth Contexts** | Supabase Auth + `python-jose` | v2 | Full PKCE OAuth configurations processed with 0ms Backend network validation arrays explicitly |
 | **Deployment** | Railway (backend) + Vercel (frontend) | — | Built-in seamless CI/CD pushing full containerized arrays to production securely |
@@ -50,12 +51,12 @@
 │  │                                                              │  │
 │  │   Tools:                                                     │  │
 │  │   ┌──────────────────┐  ┌──────────────────────────────┐   │  │
-│  │   │  geocode_stop    │  │  search_saved_stops          │   │  │
-│  │   │  (Google API)    │  │  (ChromaDB cosine similarity)│   │  │
+│  │   │  geocode_stop    │  │  search_trips_by_stop        │   │  │
+│  │   │  (Google API)    │  │  (Postgres SQL ILIKE)        │   │  │
 │  │   └──────────────────┘  └──────────────────────────────┘   │  │
 │  │   ┌──────────────────┐  ┌──────────────────────────────┐   │  │
 │  │   │ search_saved_    │  │  get_trip_by_id              │   │  │
-│  │   │ trips (ChromaDB) │  │  (PostgreSQL)                │   │  │
+│  │   │ trips (SQL ILIKE)│  │  (PostgreSQL)                │   │  │
 │  │   └──────────────────┘  └──────────────────────────────┘   │  │
 │  │   ┌──────────────────┐  ┌──────────────────────────────┐   │  │
 │  │   │ get_recent_      │  │  modify_route (Atomic Array) │   │  │
@@ -71,9 +72,9 @@
 │                                                                    │
 │  ┌──────────────┐  ┌────────────────┐  ┌──────────────────────┐  │
 │  │  Supabase    │  │   ChromaDB     │  │  fastembed           │  │
-│  │ PostgreSQL   │  │  (stop + trip  │  │  BAAI/bge-small-en  │  │
+│  │ PostgreSQL   │  │  (History Q&A  │  │  BAAI/bge-small-en  │  │
 │  │  (trips,     │  │   embeddings,  │  │  (local embeddings)  │  │
-│  │  UUIDs,      │  │   history      │  │                      │  │
+│  │  UUIDs,      │  │   history)     │  │                      │  │
 │  │  llm_logs)   │  │                │  │                      │  │
 │  └──────────────┘  └────────────────┘  └──────────────────────┘  │
 │                                                                    │
@@ -110,8 +111,7 @@ CREATE TABLE IF NOT EXISTS trips (
   name VARCHAR(200) NOT NULL,
   notes TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
-  last_launched_at TIMESTAMP,
-  chroma_id TEXT UNIQUE -- ChromaDB tracking string natively syncing logic bindings
+  last_launched_at TIMESTAMP
 );
 
 -- Ordered stops per trip
@@ -123,8 +123,7 @@ CREATE TABLE IF NOT EXISTS stops (
   lat FLOAT,
   lng FLOAT,
   order_index INTEGER DEFAULT 0,
-  notes TEXT,
-  chroma_id TEXT UNIQUE
+  notes TEXT
 );
 
 -- Trip launch history QA logic (Feeds RAG)
@@ -155,8 +154,10 @@ CREATE TABLE IF NOT EXISTS llm_logs (
 
 ### ChromaDB Collections (Vector Storage Architecture)
 
-Collections dynamically implement user namespaces using string allocations: `saved_stops_{user_id}`.
-Each Vector Collection tracks `metadata={"hnsw:space": "cosine"}` mappings targeting deep logic representations implicitly.
+Collections dynamically implement user namespaces using string allocations: `trip_history_{user_id}`.
+Each Vector Collection tracks `metadata={"hnsw:space": "cosine"}` mappings targeting history QA logic.
+
+**Note:** Trip and stop searches use high-performance SQL `ILIKE` pattern matching in PostgreSQL, ensuring 100% search reliability in ephemeral cloud environments. ChromaDB is strictly reserved for semantic history retrieval (RAG).
 
 ---
 

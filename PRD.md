@@ -14,9 +14,9 @@
 School bus drivers and professional logistics contractors manually re-enter identical routes into generic navigation platforms continuously. There exists no persistent navigation assistant that allows drivers to express routes natively via conversational prompts, securely binding those parameters, and actively retrieving them later. Common platforms demand strict inputs and possess zero long-term memory of distinct routing patterns.
 
 ### 1.2 Solution
-RoutAura is a robust Progressive Web App powered by a **LangChain-orchestrated Zero-Shot ReAct AI agent** empowering users to command routes conversationally natively. The deployed Agent isolates intent, engages custom backend toolkits to geocode ambiguous addresses via dynamic state-biasing parameters, and semantically assesses historical similarities using embedded cosine logic against historic domains natively. 
+RoutAura is a robust Progressive Web App powered by a **LangChain-orchestrated Zero-Shot ReAct AI agent** empowering users to command routes conversationally. The deployed Agent isolates intent, engages custom backend toolkits to geocode ambiguous addresses, and uses high-performance PostgreSQL `ILIKE` pattern matching to retrieve historical trips and stops natively.
 
-Every route config is explicitly embedded locally within **ChromaDB** enabling ultra-fast deep semantic fuzzy recall (e.g. "The usual PM run"). Master domain data is secured via **Supabase PostgreSQL** offering relational indexing natively.
+Every route config is stored in **Supabase PostgreSQL** enabling ultra-fast fuzzy recall (e.g. "The usual PM run"). **ChromaDB** is strictly reserved for the History Q&A RAG pipeline, ensuring deep natural language grounded facts.
 
 ### 1.3 Agentic Engineering Architectures
 RoutAura avoids archaic direct-LLM generation paradigms representing naive Chatbot workflows. It simulates enterprise agentic system deployments safely:
@@ -60,8 +60,8 @@ Agent Step 3 → THOUGHT: Task complete. Output the coordinates for routing endp
 | F1 | Multi-Model LLM Rotation Fallbacks (`groq_rotator`) | Intelligent rate-limit mitigation (Groq to Gemini) |
 | F2 | LangChain Zero-Shot ReAct Orchestration | Autonomous tool looping logic natively |
 | F3 | Single-Parameter Geocoding Extractor Logic | LLM State disambiguation parsing natively |
-| F4 | Semantic Stop Search (Vector cosine similarity) | Local AI embeddings (`fastembed`), ChromaDB |
-| F5 | Semantic Trip Recall (Fuzzy historical searching) | Advanced Context Parsing |
+| F4 | Fuzzy Stop Search (Postgres SQL ILIKE) | Advanced pattern matching, plural-friendly |
+| F5 | Fuzzy Trip Search (Postgres SQL ILIKE) | Root-word expansion matching |
 | F6 | RAG Trip History QA System | True Retrieval-Augmented Generation execution globally natively |
 | F7 | Supabase PostgreSQL Identity Persistence | Hybrid local/cloud Auth + SQL architectures |
 | F8 | Local JWT Validation Pipelines (`python-jose`) | Zero-latency Auth processing architectures natively |
@@ -78,11 +78,12 @@ Agent Step 3 → THOUGHT: Task complete. Output the coordinates for routing endp
 ### F1 + F2 — Multi-Model LLM Fleets & LangChain ReAct
 The Agent core operates principally on the **Groq API (`llama-3.3-70b-versatile`)**. Should inferencing thresholds peak (HTTP 429 / 503 limits), requests are natively diverted through a custom `groq_rotator` array, migrating parameters gracefully against equivalent **Google Gemini (`gemini-2.5-flash`)** models silently natively guaranteeing continuous operational stability. 
 
-### F4 + F5 — Vector Semantic Memory (`fastembed` + ChromaDB)
-Identities are mapped locally into persistent nested Chroma namespaces mapping explicitly over dynamic `fastembed` (`BAAI/bge-small-en-v1.5`) models. No API keys are consumed to embed documents natively over Railway containers.
+### F4 + F5 — Fuzzy SQL Memory (PostgreSQL `ILIKE`)
+Trip and stop recall leverages optimized SQL `ILIKE` queries with automatic plural handling and root-word normalization. This provides 100% reliable matching even in ephemeral cloud environments where local vector databases might reset.
 
 Example operations:
-- "The farm" → Embeds naturally resolving to "185 Rural Dr, TX" with a >0.87 cosine score explicitly.
+- "The farm" → Resolves to "185 Rural Dr, TX" via fuzzy name matching.
+- "hospitals" → Automatically searches for "hospital" to match stop labels.
 
 ### F6 — RAG Deep Historical QA 
 Drivers query their log archives verbally.
@@ -116,8 +117,8 @@ RoutAura natively illustrates direct experience matrices heavily required agains
 |-----------------------------|--------------------------|
 | Complex Backend Orchestration natively | Python 3.12+ FastAPI |
 | Deep Multi-LLM API Integrations | Groq APIs gracefully bridging Google Gemini endpoints defensively |
-| Robust Semantic AI Integrations | Single-node explicit `fastembed` bounding ChromaDB namespaces |
-| Genuine RAG application deployment | Functional user-interactive QA log architectures natively |
+| Robust Fuzzy AI Integrations | Optimized PostgreSQL SQL `ILIKE` pattern matching |
+| Genuine RAG application deployment | Functional user-interactive QA log architectures via ChromaDB |
 | Production Container Cloud scaling | Railway App clusters binding generic Supabase endpoints natively |
 | UI/UX Consumer Architectures | Dynamic CSS Grid manipulations building active Glassmorphism logic arrays natively |
 | Secure API Identity brokering | Deep native Supabase OAuth setups bypassing manual data-entry limits |  

@@ -3,7 +3,7 @@
 
 **Version:** 2.0  
 **Date:** March 2026
-**Status:** 100% Complete 
+**Status:** Phase 0-26 Complete
 
 ---
 
@@ -35,7 +35,7 @@ Ship the agentic AI core natively first — establishing absolute structural sta
 - [x] **T012** — Model initial `Trip`, `Stop`, `TripHistory`, `LLMLog` models
 - [x] **T013** — Support PRAGMA mappings
 - [x] **T014** — Configure Startup event logic
-- [x] **T015** — Bootstrap ChromaDB collections: `saved_stops`, `saved_trips`, `trip_history`
+- [x] **T015** — Bootstrap ChromaDB collections: `trip_history` (strictly for RAG)
 - [x] **T016** — Standardize `schemas.py` Pydantic models
 - [x] **T017** — Validate offline read-writes
 
@@ -251,6 +251,16 @@ Ship the agentic AI core natively first — establishing absolute structural sta
 - [x] **T179** — Fix semantic loop route deletion by hardening contextual retry detection against immediate prior stops exclusively natively.
 - [x] **T180** — Attach explicit `session_id` structures to backend MD5 hashing preventing duplicate request false-positives across manual page refreshes seamlessly.
 - [x] **T181** — Apply strict System Prompts preventing bare-brand context hallucinations (e.g., "Target" without a city) detached from explicit geographical bounds.
+
+## Phase 26 — SQL Search Migration (Architectural Hardening)
+*Goal: Remove dependency on local vector storage for business-critical trip and stop searches.*
+
+- [x] **T182** — Rewrite `search_saved_trips` to use PostgreSQL SQL `ILIKE` pattern matching.
+- [x] **T183** — Implement `search_trips_by_stop` tool using SQL `ILIKE` on labels and resolved addresses.
+- [x] **T184** — Build server-side plural handling (singular root normalization) for stop searches.
+- [x] **T185** — Stub out trip/stop embedding logic in `vector_service.py` to end dual-write complexity.
+- [x] **T186** — Fix agent stop extraction priority to resolve back-to-back saved trip loading bugs.
+- [x] **T187** — Update all documentation (README, Spec, PRD) to reflect SQL fuzzy matching architecture.
 
 ---
 _END OF ROADMAP_
