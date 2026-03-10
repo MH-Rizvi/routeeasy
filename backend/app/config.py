@@ -9,6 +9,8 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Application settings loaded from environment variables (.env)."""
 
+    jwt_secret: str = Field(default="", env="JWT_SECRET")
+
     groq_api_key: Optional[str] = Field(default=None, env="GROQ_API_KEY")
     groq_api_key_1: str = Field(default="", env="GROQ_API_KEY_1")
     groq_api_key_2: str = Field(default="", env="GROQ_API_KEY_2")
@@ -92,6 +94,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 @lru_cache(maxsize=1)

@@ -100,27 +100,39 @@ def add_stop(
 
 def add_trip(trip_id: int, name: str, stops: List[Dict[str, Any]], user_id: str) -> str:
     """
-    Embed and store a trip.
-
-    Document = trip name + all stop labels concatenated.
+    Embed and store a trip using a hybrid approach.
+    
+    Upserts 2 separate documents per trip:
+    1. A document for the pure trip name.
+    2. A document for the explicit list of stops.
+    Both carry the identical metadata pointing to the same trip_id.
     """
-    doc_id = f"trip_{trip_id}"
     stop_labels = " ".join(str(s.get("label", "")) for s in stops)
-    document = f"{name} {stop_labels}".strip()
+    
+    # 1. Name document
+    doc_id_name = f"trip_{trip_id}_name"
+    doc_name = f"Trip name: {name}".strip()
+    
+    # 2. Stops document
+    doc_id_stops = f"trip_{trip_id}_stops"
+    stop_labels_comma = ", ".join(str(s.get("label", "")) for s in stops)
+    doc_stops = f"Stops for {name}: {stop_labels_comma}".strip()
+    
+    metadata = {
+        "trip_id": trip_id,
+        "name": name,
+        "stop_count": len(stops),
+        "stop_labels": stop_labels,
+    }
 
     _get_trips_collection(user_id).upsert(
-        ids=[doc_id],
-        embeddings=[embed(document)],
-        documents=[document],
-        metadatas=[
-            {
-                "trip_id": trip_id,
-                "name": name,
-                "stop_count": len(stops),
-            }
-        ],
+        ids=[doc_id_name, doc_id_stops],
+        embeddings=[embed(doc_name), embed(doc_stops)],
+        documents=[doc_name, doc_stops],
+        metadatas=[metadata, metadata],
     )
-    return doc_id
+    
+    return f"trip_{trip_id}"
 
 
 def add_history_entry(
@@ -164,12 +176,31 @@ def search_stops(query: str, user_id: str, top_k: int = 3) -> List[Dict[str, Any
 
 
 def search_trips(query: str, user_id: str, top_k: int = 3) -> List[Dict[str, Any]]:
-    """Semantic search over saved trips."""
+    """
+    Semantic search over saved trips. 
+    Queries more results under the hood to deduplicate hybrid matching (name + stops doc) per trip.
+    """
+    # Query extra records in case both docs for the same trip match highly
     results = _get_trips_collection(user_id).query(
         query_embeddings=[embed(query)],
-        n_results=top_k,
+        n_results=top_k * 2,
     )
-    return _format_results(results)
+    
+    formatted = _format_results(results)
+    
+    # Deduplicate by trip_id so we only return the highest-scoring doc per trip
+    deduplicated = []
+    seen_trip_ids = set()
+    
+    for item in formatted:
+        trip_id = item.get("metadata", {}).get("trip_id")
+        if trip_id is not None and trip_id not in seen_trip_ids:
+            seen_trip_ids.add(trip_id)
+            deduplicated.append(item)
+            if len(deduplicated) == top_k:
+                break
+                
+    return deduplicated
 
 
 def search_history(query: str, user_id: str, top_k: int = 5) -> List[Dict[str, Any]]:
@@ -184,19 +215,30 @@ def search_history(query: str, user_id: str, top_k: int = 5) -> List[Dict[str, A
 def delete_stop(chroma_id: str, user_id: str) -> None:
     """Delete a stop document from the saved_stops collection."""
     if chroma_id:
-        _get_stops_collection(user_id).delete(ids=[chroma_id])
+        try:
+            _get_stops_collection(user_id).delete(ids=[chroma_id])
+        except Exception:
+            pass
 
 
 def delete_trip(chroma_id: str, user_id: str) -> None:
     """Delete a trip document from the saved_trips collection."""
     if chroma_id:
-        _get_trips_collection(user_id).delete(ids=[chroma_id])
+        try:
+            _get_trips_collection(user_id).delete(
+                ids=[chroma_id, f"{chroma_id}_name", f"{chroma_id}_stops"]
+            )
+        except Exception:
+            pass
 
 
 def delete_history_entry(chroma_id: str, user_id: str) -> None:
     """Delete a history document from the trip_history collection."""
     if chroma_id:
-        _get_history_collection(user_id).delete(ids=[chroma_id])
+        try:
+            _get_history_collection(user_id).delete(ids=[chroma_id])
+        except Exception:
+            pass
 
 
 def clear_history(user_id: str) -> None:
