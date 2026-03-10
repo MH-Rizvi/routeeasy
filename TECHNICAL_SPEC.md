@@ -178,6 +178,15 @@ This array is injected into the LLM context. When the user requests a modificati
 
 ---
 
+## 4.6. Conversational Edge-Case Hardening & Deduplication TTL
+
+RoutAura implements systemic logic bindings to defensively process human edge-cases:
+1. **Interactive Consent Loops:** Tools encountering logical geography collisions (e.g., "Target MN" instead of "Target NY") natively throw `CITY MISMATCH` approvals back to the driver. The agent re-queries the tools dynamically only after receiving user confirmation via a `confirmed: true` flag payload.
+2. **Missing-Geography Clarifications:** To prevent context hallucination where the LLM guesses the wrong target city based on the previous stop's address, strict rules mandate the AI asks "Which city?" whenever a bare-brand replacement is requested natively.
+3. **Session-Aware MD5 TTLs:** Identical queries issued actively across independent clients ("Home") bypass blocking mechanisms by binding the unique frontend `session_id` directly into the MD5 collision hash. Local dictionaries enforce strict 5-second garbage-collection expiration TTLs on active request lockouts, securing identical multi-tab processes globally.
+
+---
+
 ## 5. RAG Pipeline Implementation Flow
 
 1. The user asks "Have I been to Oak Street?".

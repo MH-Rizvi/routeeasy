@@ -242,4 +242,15 @@ Ship the agentic AI core natively first — establishing absolute structural sta
 - [x] **T176** — Remove brittle route array reconstruction and fuzzy-matching fallbacks from frontend UI stores.
 
 ---
+
+## Phase 25 — Agentic Edge-Case Hardening (Production Ready)
+*Goal: Ensure the agent gracefully handles complex human prompt variations without hallucinating or breaking state.*
+
+- [x] **T177** — Implement City Mismatch Detection in `modify_route` alerting users when a geocoded brand location differs from the requested city.
+- [x] **T178** — Build Interactive Confirmation Loops allowing the agent to re-query tools dynamically post-user-consent (`confirmed: true` flag).
+- [x] **T179** — Fix semantic loop route deletion by hardening contextual retry detection against immediate prior stops exclusively natively.
+- [x] **T180** — Attach explicit `session_id` structures to backend MD5 hashing preventing duplicate request false-positives across manual page refreshes seamlessly.
+- [x] **T181** — Apply strict System Prompts preventing bare-brand context hallucinations (e.g., "Target" without a city) detached from explicit geographical bounds.
+
+---
 _END OF ROADMAP_

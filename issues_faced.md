@@ -549,3 +549,33 @@ Language models are probabilistic text generators, not deterministic databases. 
 2. **Current Route Injection:** Upgraded the API payload so the frontend `chatStore` dynamically pumps the definitive `current_route` state into the backend on every cycle, which in turn injects it directly into the LLM's system prompt context.
 3. **Deterministic `@tool` Mutation:** Created a new Langchain `@tool("modify_route")` (handling `add`, `remove`, `replace`) that executes atomic array modifications perfectly using Python logic, stripping the LLM's responsibility down to simply declaring *which* index to modify and with *what* query.
 4. **Frontend Absolute Truth:** Demolished the brittle, multi fallback text-parsing blocks in the frontend `chatStore.js`. The UI now blindly trusts the mechanical `response.stops` array outputted directly from Python, completely eliminating Stop 1 overwrites or partial update UI glitches.
+
+## Issue 36: Identical Messages Blocked Across Different Sessions (Duplicate Hash Bug)
+**Phase:** Core Agent Interaction / Deduplication
+**Date Identified:** March 9, 2026
+**Severity:** CRITICAL (Silent App Lockout)
+
+### Description
+If a driver typed "Navigate to Home Depot", refreshed the page, and typed "Navigate to Home Depot" again in the new session, the backend immediately blocked the request with a "Duplicate request detected" error. The agent would state "I am already processing that request. Please wait." indefinitely.
+
+### Root Cause Analysis
+The server-side deduplication mechanism in `core.py` tracked actively processing requests by hashing the message text (`hashlib.md5(message.encode("utf-8"))`). Because the hash ONLY contained the message strings, identical messages from two completely different sessions generated the exact same MD5 collision. Furthermore, the cache lacked a Time-To-Live (TTL). If a request crashed without removing its hash from the active set, that exact string became permanently soft-locked globally across the entire server instance forever.
+
+### Resolution Implemented
+1. **Session-Bound Key Hashing:** Altered the hash input structure to explicitly combine both the session ID and the message text (`f"{session_id}:{message}"`). Identical messages from different browser sessions now safely generate entirely distinct MD5 hashes securely.
+2. **5-Second TTL Engine:** Intercepted the bare `set()` with a transient `dict` mapping the hash keys against active `time.time()` float timestamps. The deduplicator now aggressively trims any hash execution older than 5.0 seconds automatically, permanently eliminating zombie lockouts.
+
+## Issue 37: Agent Hallucinating Target Cities on Zero-Context Replacements
+**Phase:** LLM Behavior / Geocoding
+**Date Identified:** March 9, 2026
+**Severity:** HIGH (Wrong Route Displayed)
+
+### Description
+When the user established a route (e.g., Stop 1 in Hicksville, NY, Stop 2 in Woodbury, NY) and then explicitly told the agent to "change the last stop to Target", the agent geocoded the replacement stop to "Target Woodbury, MN" (Minnesota) instead of asking for clarification.
+
+### Root Cause Analysis
+Because the replacement query "Target" lacked an explicit city, the geocoding service struggled. In an effort to "help", the LLM automatically deduced the missing city must match the previous stop's city (Woodbury, NY). It constructed the query `"Target Woodbury NY"`, which returned the literal address of the previous stop, or `"Target Woodbury"`, which routed to Minnesota. The LLM inherently assumed context inheritance applied to distinct brand replacements.
+
+### Resolution Implemented
+1. **Strict Missing City Prompt Injection:** Deployed a hard `MISSING CITY` rule directly into the System Prompt. The LLM is now actively ordered: *If the user says "make it Target" with NO city, you MUST ask "Which city should I look for [store] in?" BEFORE calling `modify_route`.*
+2. **Context Annihilation Command:** The prompt explicitly forbids guessing the city from the previous stop's address during brand swaps natively.
