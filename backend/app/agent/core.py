@@ -49,23 +49,10 @@ _prompt = PromptTemplate(
 
 # Ordered by reliability/capacity — less popular models first to reduce rate-limit hits.
 # The last-successful model index is remembered ("sticky") across requests.
-GROQ_MODELS = [
-    "meta-llama/llama-4-scout-17b-16e-instruct",
-    "meta-llama/llama-4-maverick-17b-128e-instruct",
-    "moonshotai/kimi-k2-instruct",
-    "llama-3.3-70b-versatile",
-]
-_current_model_idx = 0  # sticky: remembers last successful model
-
 
 def _build_executor() -> AgentExecutor:
     """Build a fresh AgentExecutor using the current rotator key."""
-    if groq_rotator.current_provider == "groq":
-        model_name = GROQ_MODELS[_current_model_idx]
-    else:
-        model_name = "gemini-2.0-flash-lite"
-
-    llm = groq_rotator.get_chat_groq(model=model_name, temperature=0)
+    llm = groq_rotator.get_chat_groq(temperature=0)
     agent = create_react_agent(llm, _tools, _prompt, output_parser=RouteEasyOutputParser())
     return AgentExecutor(
         agent=agent,
@@ -475,74 +462,17 @@ async def _run_agent_internal(
             if not _is_rate_limit_error(exc):
                 raise
                 
-            provider = groq_rotator.current_provider
+            # 1-strike immediate rotation
+            logger.warning(f"Agent Endpoint Encountered Rate Limit: {str(exc)[:80]}")
+            found_next = groq_rotator.advance_on_failure()
             
-            if provider == "groq":
-                if groq_model_retries < 1:
-                    groq_model_retries += 1
-                    logger.warning("Agent Groq rate limit on model %s, retry %d/1: %s", GROQ_MODELS[_current_model_idx], groq_model_retries, str(exc)[:80])
-                    continue
-                else:
-                    # Model exhausted after 1 retry, rotate immediately
-                    if groq_models_tried < len(GROQ_MODELS):
-                        groq_models_tried += 1
-                        _current_model_idx = (_current_model_idx + 1) % len(GROQ_MODELS)
-                        logger.warning("Agent Groq model exhausted, rotating to next model: %s (%d/%d)", GROQ_MODELS[_current_model_idx], groq_models_tried, len(GROQ_MODELS))
-                        _agent_executor = _build_executor()
-                        groq_model_retries = 0
-                        continue
-                    else:
-                        num_groq_keys = sum(1 for p, k in groq_rotator._keys if p == "groq")
-                        if groq_keys_tried < num_groq_keys:
-                            groq_keys_tried += 1
-                            logger.warning("Agent Groq key exhausted across all models, rotating to next Groq key (%d/%d)", groq_keys_tried, num_groq_keys)
-                            groq_rotator.refresh_chat_groq()
-                            
-                            # Start with the first model for the new key
-                            _current_model_idx = 0
-                            groq_models_tried = 1
-                            groq_model_retries = 0
-                            _agent_executor = _build_executor()
-                            continue
-                        else:
-                            logger.warning("All Agent Groq keys and models completely exhausted, forcing Gemini fallback")
-                            rotated = False
-                            for _ in range(groq_rotator.key_count):
-                                groq_rotator.refresh_chat_groq()
-                                if groq_rotator.current_provider == "gemini":
-                                    rotated = True
-                                    break
-                            if not rotated:
-                                break
-                            
-                            _agent_executor = _build_executor()
-                            continue
-            else:
-                num_gemini_keys = sum(1 for p, k in groq_rotator._keys if p == "gemini")
-
-                should_fail_fast = "quota" in exc_str or "429" in exc_str or "resourceexhausted" in exc_str
+            if not found_next:
+                logger.error("All Agent fallback models exhausted.")
+                break
                 
-                if not should_fail_fast and gemini_key_retries < 1:
-                    gemini_key_retries += 1
-                    logger.warning("Agent Gemini rate limit, retry %d/1. Waiting 30s...", gemini_key_retries)
-                    await asyncio.sleep(30)
-                    continue
-                else:
-                    if should_fail_fast:
-                        logger.warning("Agent Gemini quota exhausted, failing fast to next key.")
-                    else:
-                        logger.warning("Agent Gemini retries exhausted for this key.")
-                        
-                    if gemini_keys_tried < num_gemini_keys:
-                        gemini_keys_tried += 1
-                        logger.warning("Rotating to next Gemini key (%d/%d)", gemini_keys_tried, num_gemini_keys)
-                        groq_rotator.refresh_chat_groq()
-                        _agent_executor = _build_executor()
-                        gemini_key_retries = 0
-                        continue
-                    else:
-                        logger.warning("All Gemini keys exhausted.")
-                        break
+            # Rebuild the executor with the new key/model
+            _agent_executor = _build_executor()
+            continue
 
         logger.error("All LLM keys rate-limited. Giving up. Last exc: %s", last_exc)
         return {

@@ -58,6 +58,7 @@ class DummyResponse:
 class LLMKeyRotator:
     """
     Maintains a pool of LLM API keys (Groq first, then Gemini fallback).
+    Implements a 1-strike immediate rotation dropping models on 429/503 errors natively.
     """
 
     def __init__(self) -> None:
@@ -68,8 +69,23 @@ class LLMKeyRotator:
         
         if not self._keys:
             raise RuntimeError("No API keys configured. Set GROQ_API_KEY or GEMINI_API_KEY in .env")
+
+        self.groq_models = [
+            "llama-3.3-70b-versatile",
+            "meta-llama/llama-4-maverick-17b-128e-instruct",
+            "meta-llama/llama-4-scout-17b-16e-instruct",
+            "moonshotai/kimi-k2-instruct",
+            "qwen/qwen3-32b",
+            "llama-3.1-8b-instant"
+        ]
             
-        self._current_index: int = 0
+        self._current_key_idx: int = 0
+        self._current_model_idx: int = 0
+        
+        # Tracks timestamp of exhausted combinations: (key, model) -> time.time()
+        self._exhausted_combos: dict[tuple[str, str], float] = {}
+        self.cooldown_seconds = 60.0
+
         logger.info(
             "LLMKeyRotator initialised with %d key(s) (%d Groq, %d Gemini)",
             len(self._keys), len(groq_keys), len(gemini_keys)
@@ -77,31 +93,85 @@ class LLMKeyRotator:
 
     @property
     def current_provider(self) -> str:
-        return self._keys[self._current_index][0]
+        return self._keys[self._current_key_idx][0]
 
     @property
     def current_key(self) -> str:
-        return self._keys[self._current_index][1]
+        return self._keys[self._current_key_idx][1]
+
+    @property
+    def current_model(self) -> str:
+        if self.current_provider == "groq":
+            return self.groq_models[self._current_model_idx]
+        return "gemini-2.0-flash-lite"
 
     @property
     def key_count(self) -> int:
         return len(self._keys)
 
-    def _rotate(self) -> bool:
-        """Move to the next key in the pool."""
-        next_index = (self._current_index + 1) % len(self._keys)
-        if next_index == self._current_index and len(self._keys) == 1:
-            logger.warning("Only 1 key available — cannot rotate")
-            return False
-        self._current_index = next_index
-        logger.info(
-            "Rotated to %s key %d/%d (%s)",
-            self.current_provider.title(),
-            self._current_index + 1,
-            len(self._keys),
-            _mask(self.current_key),
-        )
-        return True
+    def is_exhausted(self, key: str, model: str) -> bool:
+        """Check if this combination is in cooldown."""
+        import time
+        if (key, model) in self._exhausted_combos:
+            if time.time() - self._exhausted_combos[(key, model)] > self.cooldown_seconds:
+                del self._exhausted_combos[(key, model)]
+                return False
+            return True
+        return False
+
+    def advance_on_failure(self) -> bool:
+        """
+        Record the current Model + Key as exhausted natively, and immediately roll forward.
+        Returns True if a new valid combination was found, False if all are exhausted.
+        """
+        import time
+        provider, key = self._keys[self._current_key_idx]
+        model = self.current_model
+        
+        # Mark current mapping dead
+        self._exhausted_combos[(key, model)] = time.time()
+        logger.warning(f"Exhausted {provider} model {model} on key {_mask(key)}. Marking cooldown for 60s.")
+
+        # If we are on Gemini, there are no sub-models to rotate. Jump to next key.
+        if provider == "gemini":
+            started = self._current_key_idx
+            while True:
+                self._current_key_idx = (self._current_key_idx + 1) % len(self._keys)
+                if self._current_key_idx == started:
+                    logger.error("ALL keys globally exhausted.")
+                    return False
+                if not self.is_exhausted(self.current_key, self.current_model):
+                    return True
+
+        # For Groq, scan forward on models first, then keys
+        for key_offset in range(len(self._keys)):
+            idx = (self._current_key_idx + key_offset) % len(self._keys)
+            cand_provider, cand_key = self._keys[idx]
+            
+            if cand_provider == "gemini":
+                # We reached gemini fallback tier
+                if not self.is_exhausted(cand_key, "gemini-2.0-flash-lite"):
+                    self._current_key_idx = idx
+                    self._current_model_idx = 0
+                    logger.warning("Fell back to Gemini natively.")
+                    return True
+                continue
+
+            # It's a Groq key: search its models
+            start_model = (self._current_model_idx + 1) if key_offset == 0 else 0
+            
+            for m_offset in range(len(self.groq_models)):
+                cand_m_idx = (start_model + m_offset) % len(self.groq_models)
+                cand_model = self.groq_models[cand_m_idx]
+                
+                if not self.is_exhausted(cand_key, cand_model):
+                    self._current_key_idx = idx
+                    self._current_model_idx = cand_m_idx
+                    logger.info(f"Rotated -> Provider: {cand_provider}, Model: {cand_model}, Key: {_mask(cand_key)}")
+                    return True
+                    
+        logger.error("ALL keys and ALL models are currently exhausted! Awaiting 60s cooldowns.")
+        return False
 
     # ── Legacy Async wrapper for RAG service ─────────
 
@@ -118,10 +188,6 @@ class LLMKeyRotator:
         so it seamlessly falls back to Gemini.
         """
         last_exc: Exception | None = None
-        groq_keys_tried = 1
-        groq_key_retries = 0
-        gemini_keys_tried = 1
-        gemini_key_retries = 0
 
         # Convert simple chat dicts to proper LangChain format
         lc_messages = []
@@ -132,7 +198,6 @@ class LLMKeyRotator:
 
         while True:
             try:
-                # Discard Groq-specific 'model' internally to use the provider default
                 llm = self.get_chat_llm(max_tokens=max_tokens, **kwargs)
                 response = await llm.ainvoke(lc_messages)
                 
@@ -146,95 +211,42 @@ class LLMKeyRotator:
                 
             except Exception as exc:
                 last_exc = exc
+                exc_str = str(exc).lower()
+
+                if "generaterequestsperday" in exc_str:
+                    logger.error("Daily quota exhausted. Stopping all retries immediately.")
+                    break
+
                 if not _is_rate_limit_error(exc):
                     raise
                     
-                provider = self.current_provider
-                
-                if provider == "groq":
-                    if groq_key_retries < 1:
-                        groq_key_retries += 1
-                        logger.warning("Groq rate limit on current key, retry %d/1: %s", groq_key_retries, str(exc)[:80])
-                        continue
-                    else:
-                        num_groq_keys = sum(1 for p, k in self._keys if p == "groq")
-                        if groq_keys_tried < num_groq_keys:
-                            groq_keys_tried += 1
-                            logger.warning("Groq key exhausted, rotating to next Groq key (%d/%d)", groq_keys_tried, num_groq_keys)
-                            self._rotate()
-                            groq_key_retries = 0
-                            continue
-                        else:
-                            logger.warning("All Groq keys exhausted, forcing Gemini fallback")
-                            rotated = False
-                            for _ in range(self.key_count):
-                                self._rotate()
-                                if self.current_provider == "gemini":
-                                    rotated = True
-                                    break
-                            if not rotated:
-                                break
-                            continue
-                else:
-                    num_gemini_keys = sum(1 for p, k in self._keys if p == "gemini")
-                    exc_str = str(exc).lower()
-                    
-                    # Hard fail across all keys if daily quota is exhausted
-                    if "generaterequestsperday" in exc_str:
-                        logger.error("Gemini daily quota exhausted. Stopping all retries immediately.")
-                        break
-
-                    should_fail_fast = "quota" in exc_str or "429" in exc_str or "resourceexhausted" in exc_str
-                    
-                    if not should_fail_fast and gemini_key_retries < 1:
-                        gemini_key_retries += 1
-                        logger.warning("Gemini rate limit, retry %d/1. Waiting 30s...", gemini_key_retries)
-                        await asyncio.sleep(30)
-                        continue
-                    else:
-                        if should_fail_fast:
-                            logger.warning("Gemini quota exhausted, failing fast to next key.")
-                        else:
-                            logger.warning("Gemini retries exhausted for this key.")
-                            
-                        if gemini_keys_tried < num_gemini_keys:
-                            gemini_keys_tried += 1
-                            logger.warning("Rotating to next Gemini key (%d/%d)", gemini_keys_tried, num_gemini_keys)
-                            self._rotate()
-                            gemini_key_retries = 0
-                            continue
-                        else:
-                            logger.warning("All Gemini keys exhausted.")
-                            break
+                # 1-strike immediate rotation
+                logger.warning(f"RAG Endpoint Encountered Rate Limit: {str(exc)[:80]}")
+                found_next = self.advance_on_failure()
+                if not found_next:
+                    logger.error("All RAG fallback models exhausted.")
+                    break
+                continue
 
         raise RuntimeError("I'm a bit busy right now, please try again in a moment")
 
     # ── LangChain LLM Factory ────────────────────────
 
     def get_chat_llm(self, **kwargs: Any) -> Any:
-        """Return either ChatGroq or ChatGoogleGenerativeAI based on current active key."""
+        # Ignore external model overrides and enforce internal state tracking targets
+        kwargs.pop("model", None)
+        
         if self.current_provider == "groq":
-            defaults = {"model": "llama-3.3-70b-versatile", "temperature": 0, "model_kwargs": {"top_p": 0.1}}
+            defaults = {"model": self.current_model, "temperature": 0, "model_kwargs": {"top_p": 0.1}}
             defaults.update(kwargs)
             return ChatGroq(api_key=self.current_key, **defaults)
         else:
-            defaults = {"model": "gemini-2.0-flash-lite", "temperature": 0, "top_p": 0.1}
-            # Remove model from kwargs since callers pass Groq models like "llama..."
-            if "model" in kwargs:
-                kwargs.pop("model")
+            defaults = {"model": self.current_model, "temperature": 0, "top_p": 0.1}
             defaults.update(kwargs)
-            # Remove unsupported max_tokens for Gemini to prevent errors, use max_output_tokens
             if "max_tokens" in defaults:
                 defaults["max_output_tokens"] = defaults.pop("max_tokens")
             return ChatGoogleGenerativeAI(google_api_key=self.current_key, **defaults)
 
-    # Backwards compatibility for core.py
-    def get_chat_groq(self, **kwargs: Any) -> Any:
-        return self.get_chat_llm(**kwargs)
-
-    def refresh_chat_groq(self, **kwargs: Any) -> Any:
-        self._rotate()
-        return self.get_chat_llm(**kwargs)
 
 
 # ── Module-level singleton ────────────────────────────────────────────
