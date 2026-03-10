@@ -25,14 +25,14 @@ def _mask(key: str) -> str:
 
 
 def _is_rate_limit_error(exc: Exception) -> bool:
-    """Check if an exception is a rate-limit / daily-limit / capacity error."""
+    """Check if an exception is a rate-limit / daily-limit / capacity / 404 missing model error."""
     exc_type = type(exc).__name__
-    if "RateLimitError" in exc_type or "ResourceExhausted" in exc_type or "InternalServerError" in exc_type or "APIStatusError" in exc_type:
+    if "RateLimitError" in exc_type or "ResourceExhausted" in exc_type or "InternalServerError" in exc_type or "APIStatusError" in exc_type or "NotFoundError" in exc_type:
         return True
     msg = str(exc).lower()
     return any(
         token in msg
-        for token in ("rate_limit", "rate limit", "429", "503", "500", "502", "504", "daily limit", "token limit", "tokens_remaining", "quota exceeded", "resource exhausted", "capacity", "overloaded", "service unavailable", "internal server error")
+        for token in ("rate_limit", "rate limit", "429", "503", "500", "502", "504", "404", "not found", "daily limit", "token limit", "tokens_remaining", "quota exceeded", "resource exhausted", "capacity", "overloaded", "service unavailable", "internal server error")
     )
 
 
@@ -72,8 +72,6 @@ class LLMKeyRotator:
 
         self.groq_models = [
             "llama-3.3-70b-versatile",
-            "meta-llama/llama-4-maverick-17b-128e-instruct",
-            "meta-llama/llama-4-scout-17b-16e-instruct",
             "moonshotai/kimi-k2-instruct",
             "qwen/qwen3-32b",
             "llama-3.1-8b-instant"
