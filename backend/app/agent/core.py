@@ -384,11 +384,23 @@ async def _run_agent_internal(
             reply = result.get("output", "")
             intermediate = result.get("intermediate_steps", [])
 
-            # We no longer extract stops from tool sequences or text regex parsing.
-            # Python natively tracks the final current_route list dynamically.
-            # We simply read the modified route directly.
+            # HYBRID STOP EXTRACTION:
+            # 1. Check if modify_route was used (amendments) — active_route_ctx has the updated array
+            # 2. If empty, fall back to _extract_stops_from_steps() for fresh route builds via geocode_stop
             from app.agent.tools import get_current_route
             stops = get_current_route()
+            
+            if not stops or len(stops) < 2:
+                # No modify_route was used — try extracting from geocode_stop tool calls
+                extracted = _extract_stops_from_steps(intermediate)
+                if extracted and len(extracted) >= 2:
+                    stops = extracted
+
+            # If still empty, try parsing from the reply text as a last resort
+            if not stops or len(stops) < 2:
+                extracted_reply = _extract_stops_from_reply(reply)
+                if extracted_reply and len(extracted_reply) >= 2:
+                    stops = extracted_reply
 
             # We no longer strip coordinates from the reply text here!
             # If we strip them here, the frontend won't save them in conversation history,
@@ -408,15 +420,13 @@ async def _run_agent_internal(
                         route_changed = True
                         break
 
-            if stops and route_changed:
+            if stops and len(stops) >= 2 and route_changed:
                 # Calculate accurate distance & duration
                 stats = await directions_service.calculate_route_stats(stops)
                 response["total_distance_text"] = stats["distance"]
                 response["total_duration_text"] = stats["duration"]
                 
                 response["stops"] = stops
-                # Needs confirmation is now dynamically controlled by frontend logic 
-                # resolving array completeness, so we remove the hardcoded overwrite.
 
             return response
 
