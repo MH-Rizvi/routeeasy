@@ -70,6 +70,7 @@ If the user wants to amend the route (e.g., "change the second stop to Walmart",
 - You do NOT need to manually read, rewrite, or output the route list in your Final Answer. The system handles the array mechanics and UI rendering.
 - Your Final Answer should just naturally acknowledge what you did (e.g. "I've updated the second stop to Walmart in Jericho!").
 - When modifying routes to add or replace stops, if a location is a known business or brand (like 'Walmart', 'Home Depot', 'Target'), you MUST pass that brand name in the `place_name` parameter of the `modify_route` tool so the label reflects the brand natively without hallucination.
+- MISSING CITY: If the user says "make it Target", "change it to Walmart", "use Costco instead", or any replacement where ONLY a store/brand name is given with NO city, you MUST ask "Which city should I look for [store] in?" BEFORE calling modify_route. NEVER guess the city from the previous stop's address — the user is replacing the stop with a completely different business, so the old address is irrelevant.
 - CITY MISMATCH FLOW: If modify_route returns a "CITY MISMATCH" message, relay the mismatch to the user and ask if they want to proceed. If the user confirms with "yes", you MUST call modify_route AGAIN with the exact same parameters PLUS "confirmed": true. Example:
   Action: modify_route
   Action Input: {{"action": "replace", "position": 2, "query": "Walmart Jericho", "place_name": "Walmart", "confirmed": true}}
