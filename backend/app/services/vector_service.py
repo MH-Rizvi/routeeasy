@@ -99,27 +99,7 @@ def add_stop(
 
 
 def add_trip(trip_id: int, name: str, stops: List[Dict[str, Any]], user_id: str) -> str:
-    """
-    Embed and store a trip by name.
-    """
-    doc_id_name = f"trip_{trip_id}_name"
-    doc_name = f"Trip name: {name}".strip()
-    
-    stop_labels = " ".join(str(s.get("label", "")) for s in stops)
-    metadata = {
-        "trip_id": trip_id,
-        "name": name,
-        "stop_count": len(stops),
-        "stop_labels": stop_labels,
-    }
-
-    _get_trips_collection(user_id).upsert(
-        ids=[doc_id_name],
-        embeddings=[embed(doc_name)],
-        documents=[doc_name],
-        metadatas=[metadata],
-    )
-    
+    """Stub — trips are now searched via PostgreSQL. Kept for call-signature compatibility."""
     return f"trip_{trip_id}"
 
 
@@ -164,32 +144,8 @@ def search_stops(query: str, user_id: str, top_k: int = 3) -> List[Dict[str, Any
 
 
 def search_trips(query: str, user_id: str, top_k: int = 3) -> List[Dict[str, Any]]:
-    """
-    Semantic search over saved trips by trip name.
-    """
-    results = _get_trips_collection(user_id).query(
-        query_embeddings=[embed(query)],
-        n_results=top_k * 3,  # slight buffer for deduplication if needed
-    )
-    
-    formatted = _format_results(results)
-    
-    deduplicated = []
-    seen_trip_ids = set()
-    
-    for item in formatted:
-        sim = item.get("similarity", 0.0)
-        if sim is None or sim < 0.3:
-            continue
-            
-        trip_id = item.get("metadata", {}).get("trip_id")
-        if trip_id is not None and trip_id not in seen_trip_ids:
-            seen_trip_ids.add(trip_id)
-            deduplicated.append(item)
-            if len(deduplicated) == top_k:
-                break
-                
-    return deduplicated
+    """Stub — trips are now searched via PostgreSQL. Kept for call-signature compatibility."""
+    return []
 
 
 def search_history(query: str, user_id: str, top_k: int = 5) -> List[Dict[str, Any]]:
@@ -211,14 +167,8 @@ def delete_stop(chroma_id: str, user_id: str) -> None:
 
 
 def delete_trip(chroma_id: str, user_id: str) -> None:
-    """Delete a trip document from the saved_trips collection."""
-    if chroma_id:
-        try:
-            _get_trips_collection(user_id).delete(
-                ids=[chroma_id, f"{chroma_id}_name", f"{chroma_id}_stops"]
-            )
-        except Exception:
-            pass
+    """Stub — trips are no longer stored in ChromaDB."""
+    pass
 
 
 def delete_history_entry(chroma_id: str, user_id: str) -> None:

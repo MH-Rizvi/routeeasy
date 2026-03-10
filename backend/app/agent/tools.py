@@ -86,17 +86,58 @@ async def search_saved_stops_tool(query: str) -> List[Dict[str, Any]]:
 
 
 @tool("search_saved_trips")
-async def search_saved_trips_tool(query: str) -> List[Dict[str, Any]]:
+def search_saved_trips_tool(query: str) -> str:
     """
-    Searches saved trips using semantic similarity.
+    Searches saved trips by name using fuzzy matching.
 
-    Input: description of the trip (string).
-    Output: list of similar saved trips with similarity scores.
+    Input: trip name or description (string).
+    Output: matching trips with trip_id and stop count.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     user_id = user_id_ctx.get()
     if user_id is None:
-        return []
-    return vector_service.search_trips(query, user_id, top_k=3)
+        return "Error: Could not determine user ID."
+    
+    from sqlalchemy import text
+    from app.database import SessionLocal
+    
+    db = SessionLocal()
+    try:
+        query_words = query.strip().split()
+        short_query = query_words[0] if len(query_words) > 1 else query
+        
+        logger.info("search_saved_trips: query=%r, short_query=%r, user_id=%r", query, short_query, str(user_id))
+        
+        sql = text("""
+            SELECT id, name, 
+                   (SELECT COUNT(*) FROM stops WHERE stops.trip_id = trips.id) as stop_count
+            FROM trips 
+            WHERE (name ILIKE :query OR name ILIKE :short_query)
+            AND user_id = :user_id
+            ORDER BY created_at DESC
+            LIMIT 3
+        """)
+        
+        results = db.execute(sql, {
+            "query": f"%{query}%",
+            "short_query": f"%{short_query}%",
+            "user_id": str(user_id)
+        }).fetchall()
+        
+        logger.info("search_saved_trips: got %d rows", len(results))
+        
+        if not results:
+            return f"No saved trips found matching '{query}'"
+        
+        output_lines = [f"Found {len(results)} trip(s) matching '{query}':"]
+        for row in results:
+            output_lines.append(f"- '{row[1]}' (trip_id: {row[0]}, stop_count: {row[2]})")
+        
+        return "\n".join(output_lines)
+    finally:
+        db.close()
 
 
 @tool

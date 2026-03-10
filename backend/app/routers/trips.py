@@ -8,48 +8,10 @@ from sqlalchemy.orm import Session  # pyright: ignore[reportMissingImports]
 
 from app import models, schemas
 from app.auth import get_current_user
-from app.database import get_db, SessionLocal
-from app.services import trips_service, vector_service
+from app.database import get_db
+from app.services import trips_service
 
 router = APIRouter(tags=["trips"])
-
-@router.post("/admin/reembed-trips")
-async def reembed_all_trips():
-    """One-time admin utility to clean up ChromaDB embeddings and lay down the hybrid model."""
-    from app.database import SessionLocal
-    db = SessionLocal()
-    try:
-        # Load all user trips
-        trips = db.query(models.Trip).all()
-        trip_names = []
-        
-        for trip in trips:
-            # Clean up old single-document structures
-            if trip.chroma_id:
-                try:
-                    vector_service.delete_trip(trip.chroma_id, trip.user_id)
-                except Exception:
-                    pass
-            
-            # Recreate stop label payloads for the metadata injector
-            stops_payload = [{"label": s.label} for s in trip.stops]
-            
-            # This automatically upserts the hybrid docs (returns the legacy base ID for SQL mapping stability)
-            trip.chroma_id = vector_service.add_trip(
-                trip_id=trip.id,
-                name=trip.name,
-                stops=stops_payload,
-                user_id=trip.user_id,
-            )
-            trip_names.append(trip.name)
-            
-        db.commit()
-        return {
-            "reembedded": len(trips),
-            "trips": trip_names
-        }
-    finally:
-        db.close()
 
 # ── Semantic search (MUST be before /trips/{trip_id} to avoid "search" being matched as an ID) ──
 
