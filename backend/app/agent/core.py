@@ -396,14 +396,27 @@ async def _run_agent_internal(
             # Hiding the coordinates is now handled purely visually in frontend MessageBubble.jsx.
 
             response: Dict[str, Any] = {"reply": reply}
-            if stops:
+            
+            # Determine if the route actually changed mechanically
+            route_changed = False
+            prev_route = current_route or []
+            if len(stops) != len(prev_route):
+                route_changed = True
+            else:
+                for s, p in zip(stops, prev_route):
+                    if s.get("label") != p.get("label") or s.get("resolved") != p.get("resolved"):
+                        route_changed = True
+                        break
+
+            if stops and route_changed:
                 # Calculate accurate distance & duration
                 stats = await directions_service.calculate_route_stats(stops)
                 response["total_distance_text"] = stats["distance"]
                 response["total_duration_text"] = stats["duration"]
                 
                 response["stops"] = stops
-                response["needs_confirmation"] = True
+                # Needs confirmation is now dynamically controlled by frontend logic 
+                # resolving array completeness, so we remove the hardcoded overwrite.
 
             return response
 
