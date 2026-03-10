@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Dict, Any
 
 from pydantic import BaseModel, ConfigDict
 
@@ -205,7 +205,7 @@ class LLMLogListResponse(BaseModel):
 class AgentChatRequest(BaseModel):
     message: str
     conversation_history: List[ConversationMessage] = []
-    current_route: List[Dict] = []
+    current_route: List[Dict[str, Any]] = []
     session_id: Optional[str] = None
 
 
