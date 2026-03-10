@@ -232,6 +232,19 @@ async def modify_route_tool(action: str, position: int, query: str = "", place_n
     
     Returns: Success message with the new place details, or error.
     """
+    # Safety net: LangChain ReAct agents sometimes pass the entire input as a single
+    # JSON string instead of separate parameters. Detect and extract fields if so.
+    if isinstance(action, str) and action.strip().startswith("{"):
+        import json
+        try:
+            payload = json.loads(action)
+            action = payload.get("action", action)
+            position = int(payload.get("position", position))
+            query = payload.get("query", query)
+            place_name = payload.get("place_name", place_name)
+        except (json.JSONDecodeError, ValueError):
+            pass
+
     route = active_route_ctx.get()
     
     action = action.lower()
