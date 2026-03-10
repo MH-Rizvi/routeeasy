@@ -199,6 +199,17 @@ async def save_trip_tool(trip_data_json: str) -> str:
 
     try:
         data = json.loads(trip_data_json)
+        
+        # Override fabricated LLM coordinates with the proven coordinates from active route state
+        active_route = active_route_ctx.get()
+        if active_route and "stops" in data:
+            for i, stop in enumerate(data["stops"]):
+                if i < len(active_route):
+                    real_stop = active_route[i]
+                    if "lat" in real_stop and "lng" in real_stop:
+                        stop["lat"] = real_stop["lat"]
+                        stop["lng"] = real_stop["lng"]
+
         trip_in = schemas.TripCreate(**data)
     except Exception as e:
         return f"Error parsing input. Ensure you pass a valid JSON string. Detail: {str(e)}"
