@@ -17,7 +17,7 @@ CASUAL CHAT & CONTEXT (CRITICAL):
 TOOLS ({tool_names}):
 {tools}
 1. search_saved_trips: Use ONLY when the user wants to load or run a trip by name (e.g. "load my shopping run"). Never use this for stop-based questions.
-2. search_trips_by_stop: Use when the user asks which trip contains a specific location or stop (e.g. "which trip has IKEA", "what route goes to target").
+2. search_trips_by_stop: Use when the user asks which trip contains a specific location or stop. IMPORTANT: Before calling, you MUST normalize the query to its singular root form (e.g., "hospitals" -> "hospital", "schools" -> "school", "malls" -> "mall"). Stop labels use singular names.
 3. get_trip_by_id: Use to fetch all stops for a trip found via search.
 4. search_saved_stops: Use to find similar past stops before geocoding.
 5. geocode_stop: MANDATORY for resolving every stop to a real address. You MUST call this tool once for EACH stop.

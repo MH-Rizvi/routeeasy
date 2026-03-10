@@ -113,15 +113,25 @@ def search_trips_by_stop(query: str) -> str:
     
     db = SessionLocal()
     try:
+        query_words = query.strip().split()
+        short_query = query_words[0] if len(query_words) > 1 else query
+        
         sql = text("""
             SELECT DISTINCT trips.id, trips.name, stops.label, stops.resolved
             FROM trips 
             JOIN stops ON stops.trip_id = trips.id 
-            WHERE stops.label ILIKE :query 
+            WHERE (stops.label ILIKE :query 
+                   OR stops.resolved ILIKE :query
+                   OR stops.label ILIKE :short_query 
+                   OR stops.resolved ILIKE :short_query)
             AND trips.user_id = :user_id
         """)
         
-        results = db.execute(sql, {"query": f"%{query}%", "user_id": user_id}).fetchall()
+        results = db.execute(sql, {
+            "query": f"%{query}%", 
+            "short_query": f"%{short_query}%", 
+            "user_id": user_id
+        }).fetchall()
         
         if not results:
             return f"No saved trips contain a stop matching '{query}'"
