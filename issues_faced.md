@@ -593,3 +593,5 @@ The system prompt contained a section instructing the agent to use the tool, but
 
 ### Resolution Implemented
 1. **Aggressive Prompt Forcing:** Rewrote the `COMPLIANCE QUESTIONS` block in `prompts.py` to use extremely strict negative constraints ("YOU ARE STRICTLY FORBIDDEN", "CRITICAL - NO HALLUCINATIONS", "WARNING: Do NOT attempt to be helpful by guessing"). We explicitly framed answering without the tool as giving "illegal or unsafe advice" to trigger the LLM's own safety alignment to prefer tool usage over guessing.
+2. **PRE-ANSWER COMPLIANCE GATE:** Instituted a PRE-ANSWER COMPLIANCE GATE block directly above the JSON generation output in the prompt to intercept safety questions and enforce the `check_compliance` tool immediately before generation.
+3. **Citation Formatting & Dynamic Phrasing:** Mandated that the agent vary its response opening (e.g., "For air brakes, you must...") and strictly append citations in the `📚 Source: [Manual] — [Section], p.[Page]` format to guarantee answer grounding and eradicate conversational staleness.

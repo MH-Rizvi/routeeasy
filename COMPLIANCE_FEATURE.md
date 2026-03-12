@@ -19,21 +19,21 @@ A RAG-powered conversational compliance assistant embedded in the RoutAura agent
 >
 > **Agent:** "According to the NY CDL Manual, Chapter 9, you must stop between 15–50 feet before the nearest rail, turn off all noisy equipment, open the door and window, listen and look in both directions before proceeding. Never shift gears while crossing the tracks."
 >
-> *[Source: NY CDL Manual — Railroad Crossings, p.109]*
+> *📚 Source: NY CDL Manual — Railroad Crossings, p.109*
 
 **Hours of Service**
 > **Driver:** "How many hours can I drive before I need a break?"
 >
-> **Agent:** "Under federal HOS rules, you may drive a maximum of 11 hours after 10 consecutive hours off duty. New York follows federal regulations for CMV operators with no additional state restrictions."
+> **Agent:** "Regarding driving limits, under federal HOS rules, you may drive a maximum of 11 hours after 10 consecutive hours off duty. New York follows federal regulations for CMV operators with no additional state restrictions."
 >
-> *[Source: NY CDL Manual — Hours of Service, p.43]*
+> *📚 Source: NY CDL Manual — Hours of Service, p.43*
 
 **Air Brake Inspection**
 > **Driver:** "What do I check on air brakes during pre-trip inspection?"
 >
-> **Agent:** "For air brakes you must check: air pressure build-up rate, low air warning signal, spring brakes, air leakage rate, brake pedal travel, and parking brake."
+> **Agent:** "When inspecting your air brakes, you must check: air pressure build-up rate, low air warning signal, spring brakes, air leakage rate, brake pedal travel, and parking brake."
 >
-> *[Source: NY CDL Manual — Air Brakes, p.76]*
+> *📚 Source: NY CDL Manual — Air Brakes, p.76*
 
 ---
 
@@ -188,7 +188,7 @@ class ComplianceChunk(Base):
 - Embeds question using `embed()` from `vector_service.py`
 - Queries `compliance_chunks` with pgvector cosine similarity
 - Filters by `jurisdiction IN ('NY', :state)` — adjust based on ingested docs
-- Checks best similarity score against threshold (0.70)
+- Checks best similarity score against threshold (0.65)
 - Returns formatted context string with citations, or refusal message
 
 ### Full Implementation
@@ -209,7 +209,7 @@ from app.services.vector_service import embed
 
 logger = logging.getLogger(__name__)
 
-SIMILARITY_THRESHOLD = 0.70
+SIMILARITY_THRESHOLD = 0.65
 
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=512,
@@ -353,7 +353,7 @@ def query_compliance(question: str, user_state: str, db: Session, top_k: int = 5
         if row.page:
             citation_parts.append(f"p.{row.page}")
         citation = " — ".join(citation_parts)
-        context_blocks.append(f"[{citation}]\n{row.content}")
+        context_blocks.append(f"📚 Source: {citation}\n{row.content}")
 
     return "\n\n".join(context_blocks)
 ```
@@ -578,7 +578,15 @@ Never answer these from memory — always retrieve from the official manuals:
 
 If check_compliance returns "I cannot find a specific answer", relay that message
 honestly. Do NOT attempt to answer from memory as a fallback.
+
+You MUST follow these response formatting rules for compliance answers:
+1. Vary your opening phrase (e.g., "For air brakes, you must...", "Regarding driving limits..."). Do NOT start every answer with the driver's name.
+2. ALWAYS end your answer with the citation provided in the context, formatted exactly like this: `📚 Source: [citation here]`.
 ```
+
+### PRE-ANSWER COMPLIANCE GATE
+
+The prompt was additionally hardened by placing a direct gate order above the JSON generation output format instructing the agent to never answer compliance queries without executing a tool call first.
 
 ---
 

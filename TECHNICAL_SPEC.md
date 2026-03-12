@@ -1,7 +1,7 @@
 # Technical Specification — RoutAura v2.0
 ## Architecture & Implementation Blueprint (Agentic AI Edition)
 
-**Version:** 2.0  
+**Version:** 2.1  
 **Date:** March 2026
 **Status:** Deployed via Railway/Vercel
 
@@ -21,7 +21,8 @@
 | **Primary LLMs** | Groq API (`llama-3.3-70b`) | Latest | Intensive reasoning capabilities executing logic natively around <800ms API bounds |
 | **Fallback LLMs** | Google Gemini (`gemini-2.5-flash`) | Latest | `groq_rotator` implementation preventing system crashes processing 429 logic blocks |
 | **Embeddings** | fastembed (`BAAI/bge-small-en-v1.5`) | Latest | Lightweight ONNX, natively embedded directly across Railway |
-| **Vector DB** | ChromaDB | 0.6+ | Local-first semantic arrays for History RAG and QA |
+| **Vector DB (History)** | ChromaDB | 0.6+ | Local-first semantic arrays for History RAG and QA |
+| **Vector DB (Compliance)** | pgvector | Latest | High-performance embedding matching over Supabase Postgres for CDL compliance queries |
 | **Search Engine** | PostgreSQL SQL `ILIKE` | — | Fuzzy pattern matching for trips and stops |
 | **Relational DB** | Supabase PostgreSQL | Latest | Cloud persistence, identity brokering, robust relational binding queries natively |
 | **Auth Contexts** | Supabase Auth + `python-jose` | v2 | Full PKCE OAuth configurations processed with 0ms Backend network validation arrays explicitly |
@@ -62,6 +63,10 @@
 │  │   │ get_recent_      │  │  modify_route (Atomic Array) │   │  │
 │  │   │ history (Postgres)  │  (Add/Remove/Replace python) │   │  │
 │  │   └──────────────────┘  └──────────────────────────────┘   │  │
+│  │   ┌─────────────────────────┐                              │  │
+│  │   │ check_compliance        │                              │  │
+│  │   │ (pgvector RAG queries)  │                              │  │
+│  │   └─────────────────────────┘                              │  │
 │  │   LangChain Callback Handler logs every LLM call → llm_logs│  │
 │  └─────────────────────────────────────────────────────────────┘  │
 │                                                                    │
@@ -72,10 +77,10 @@
 │                                                                    │
 │  ┌──────────────┐  ┌────────────────┐  ┌──────────────────────┐  │
 │  │  Supabase    │  │   ChromaDB     │  │  fastembed           │  │
-│  │ PostgreSQL   │  │  (History Q&A  │  │  BAAI/bge-small-en  │  │
-│  │  (trips,     │  │   embeddings,  │  │  (local embeddings)  │  │
-│  │  UUIDs,      │  │   history)     │  │                      │  │
-│  │  llm_logs)   │  │                │  │                      │  │
+│  │ PostgreSQL + │  │  (History Q&A  │  │  BAAI/bge-small-en  │  │
+│  │  pgvector    │  │   embeddings,  │  │  (local embeddings)  │  │
+│  │  (trips,     │  │   history)     │  │                      │  │
+│  │  compliance) │  │                │  │                      │  │
 │  └──────────────┘  └────────────────┘  └──────────────────────┘  │
 │                                                                    │
 │  External APIs: Google Geocoding API, Groq API, Gemini API         │
@@ -150,6 +155,14 @@ CREATE TABLE IF NOT EXISTS llm_logs (
   success BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- CDL Compliance chunks (pgvector managed)
+CREATE TABLE IF NOT EXISTS compliance_chunks (
+  id SERIAL PRIMARY KEY,
+  content TEXT NOT NULL,
+  embedding vector(384),
+  metadata JSONB
+);
 ```
 
 ### ChromaDB Collections (Vector Storage Architecture)
@@ -188,13 +201,23 @@ RoutAura implements systemic logic bindings to defensively process human edge-ca
 
 ---
 
-## 5. RAG Pipeline Implementation Flow
+## 5. RAG Pipeline Implementation Flow (History Q&A)
 
 1. The user asks "Have I been to Oak Street?".
 2. The `rag_service.py` targets the question parsing string domains.
 3. It creates explicit text vectors passing directly to `trip_history_{user_id}` retrieving the top 5 historical log summaries mathematically ranked nearest to that embedded domain string natively.
 4. It converts the retrieved String payloads natively into generic Context parameters injected directly inside a restricted Prompt instructing the Groq/Gemini array target answering based only natively based on provided Context.
 5. The User receives a formatted markdown answer referencing retrieved data directly natively safely.
+
+---
+
+## 5.5. CDL Compliance RAG Pipeline (pgvector)
+
+1. A driver asks a safety or domain question ("What is the manual slack adjuster limit?").
+2. The Agent's PRE-ANSWER COMPLIANCE GATE identifies it as a non-route compliance question, strictly enforcing the `check_compliance` tool.
+3. The prompt is embedded via `fastembed` (`BAAI/bge-small-en-v1.5`) and queries the Supabase `compliance_chunks` table using `pgvector` cosine similarity (`<=>`) with an aggressive 0.65 threshold.
+4. Top matching chunks from 1553 ingested NY CDL Manual PDF blocks are returned to the agent securely.
+5. The LLM processes the chunks and returns a concisely structured answer with dynamic opening phrasing and a required strict citation footer (e.g., `📚 Source: NY CDL Manual — Air Brakes, p.76`). The hardened prompt strictly forbids hallucinations if chunks are missing or below threshold.
 
 ---
 

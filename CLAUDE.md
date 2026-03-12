@@ -40,8 +40,8 @@ Do NOT call the Groq API directly for trip parsing. ALL AI orchestration goes th
 **2. ChromaDB + fastembed for History RAG only.**  
 Do NOT use OpenAI embeddings. Use `BAAI/bge-small-en-v1.5` from `fastembed` for local vector execution. ChromaDB is strictly reserved for the History Q&A feature (`/rag/query`). Do NOT use ChromaDB for trip or stop name searches.
 
-**3. Source of Truth: Supabase PostgreSQL.**  
-PostgreSQL holds all authoritative trip and stop data. Fuzzy search for trips and stops is implemented via SQL `ILIKE` pattern matching in `tools.py`. We no longer dual-write trips or stops to ChromaDB. The only things in ChromaDB are historical trip logs for RAG.
+**3. Source of Truth: Supabase PostgreSQL (and pgvector).**  
+PostgreSQL holds all authoritative trip and stop data. Fuzzy search for trips and stops is implemented via SQL `ILIKE` pattern matching in `tools.py`. The CDL Compliance Assistant uses `pgvector` natively stored within Supabase PostgreSQL for its RAG embeddings. We no longer dual-write trips or stops to ChromaDB. The only things in ChromaDB are historical trip logs for RAG.
 
 **4. No custom navigation.**  
 We do NOT build turn-by-turn navigation. We build Google Maps / Apple Maps deep link URLs and open them with `window.open()`. The navigation happens entirely in external apps.
@@ -104,6 +104,7 @@ async def create_trip(db: Session, trip_data: TripCreate) -> Trip:
     
     # 3. NO ChromaDB dual-write for trips/stops!
     # (Trip search is handled via SQL ILIKE in tools.py)
+    # (Compliance RAG is natively handled via pgvector)
     
     db.commit()
     db.refresh(db_trip)

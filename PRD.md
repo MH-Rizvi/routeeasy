@@ -2,7 +2,7 @@
 ## RoutAura — Agentic AI Trip Planner for Professional Drivers
 ### Portfolio Showcase Edition — Built for GenAI / Agentic AI Engineer Roles
 
-**Version:** 2.0  
+**Version:** 2.1  
 **Date:** March 2026  
 **Status:** Deployed via Railway/Vercel (Production)
 
@@ -70,6 +70,7 @@ Agent Step 3 → THOUGHT: Task complete. Output the coordinates for routing endp
 | F11 | Public/Secure Hybrid Landing Page Logic | Dynamic React routing definitions natively |
 | F12 | Deterministic Route State Mutation | Python managed atomic array swaps via `modify_route` natively |
 | F13 | Conversational Edge-Case Hardening | Interactive tool confirmation loops, anti-hallucination prompts, session hashing |
+| F14 | CDL Compliance Assistant | pgvector RAG pipeline over NY CDL Manuals natively |
 
 ---
 
@@ -91,6 +92,13 @@ Drivers query their log archives verbally.
 2. System embeds string converting logic seamlessly against historic domain targets natively retrieving top-K entries mathematically.
 3. System injects historic blocks dynamically inside restricted generic templates.
 4. Llama 3.3 isolated instance generates purely grounded answers cleanly avoiding massive LLM hallucinations effectively natively.
+
+### F14 — RAG CDL Compliance Assistant
+1. User: "What is the tread depth for front tires?"
+2. Agent's PRE-ANSWER COMPLIANCE GATE intercepts the question and enforces the `check_compliance` tool.
+3. System embeds the query using `fastembed` and queries `pgvector` (Supabase) using cosine similarity (threshold: 0.65).
+4. System retrieves chunks from 9 official NY CDL PDFs (ingested via `pypdf`).
+5. Agent responds accurately, avoiding repetitive phrases, and appends strict citations (e.g., `📚 Source: NY CDL Manual — Air Brakes, p.76`). Hardened prompt explicitly blocks all hallucinations if the answer is missing.
 
 ### F10 — Deep LLMOps Tracing
 System configurations explicitly track token expenditure inputs/outputs, iteration latency metrics natively over `llm_logs` PostgreSQL containers exposed through native visualization bounds explicitly.

@@ -1,9 +1,9 @@
 # Project Plan — RoutAura v2.0
 ## Phased Task Breakdown (Agentic AI Edition)
 
-**Version:** 2.0  
+**Version:** 2.1  
 **Date:** March 2026
-**Status:** Phase 0-26 Complete
+**Status:** Phase 0-27 Complete
 
 ---
 
@@ -261,6 +261,18 @@ Ship the agentic AI core natively first — establishing absolute structural sta
 - [x] **T185** — Stub out trip/stop embedding logic in `vector_service.py` to end dual-write complexity.
 - [x] **T186** — Fix agent stop extraction priority to resolve back-to-back saved trip loading bugs.
 - [x] **T187** — Update all documentation (README, Spec, PRD) to reflect SQL fuzzy matching architecture.
+
+---
+
+## Phase 27 — CDL Compliance Assistant
+*Goal: Provide hyper-accurate, cited answers to drivers' safety and regulatory questions using a dedicated RAG pipeline.*
+
+- [x] **T188** — Scaffold `compliance_service.py` and `compliance_chunks` table utilizing `pgvector` (Supabase).
+- [x] **T189** — Ingest 1553 chunks from 9 NY CDL PDFs via `pypdf` and `RecursiveCharacterTextSplitter`.
+- [x] **T190** — Execute fastembed `BAAI/bge-small-en-v1.5` to store `vector(384)` embeddings.
+- [x] **T191** — Expose `check_compliance` tool to the ReAct agent.
+- [x] **T192** — Harden agent prompt with PRE-ANSWER COMPLIANCE GATE to eradicate LLM memory hallucinations.
+- [x] **T193** — Tune threshold to 0.65 (cosine) and enforce `📚 Source: ` formatting on responses.
 
 ---
 _END OF ROADMAP_

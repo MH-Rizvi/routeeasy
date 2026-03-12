@@ -23,6 +23,7 @@ This implementation acts fundamentally as a robust portfolio benchmark reflectin
 - **Groq API** (`llama-3.3-70b-versatile` operating at high token-per-second constraints) 
 - **Google Gemini API** (`gemini-2.5-flash` natively integrated fallback pipeline for zero-downtime routing processing)
 - **Fastembed** ONNX framework (`BAAI/bge-small-en-v1.5` for local, cost-free vector execution devoid of heavy PyTorch instances)
+- **pgvector** (Supabase native vector storage for CDL Compliance Assistant RAG)
 - **ChromaDB** (Semantic vector database for History RAG)
 
 **Backend & Data Layer:**
@@ -42,10 +43,11 @@ This implementation acts fundamentally as a robust portfolio benchmark reflectin
 1. **ReAct Agent Autonomy**: User inputs are mathematically structured via ReAct heuristics rather than blindly passed to static generation frameworks. The Agent sequences `Thought` → `Action` → `Observation` loops internally, picking from 5 distinct tool clusters (Database indexing, vector indexing, Google Maps Live APIs, etc.) until it constructs a confident mapping package.
 2. **Fuzzy Search Memory**: Every saved trip and stop is indexed in PostgreSQL. The Agent uses advanced SQL `ILIKE` pattern matching with automatic plural handling and root-word expansion. Typing "The high school" or "hospitals" finds the specific historically referenced coordinates without generic Google Maps noise.
 3. **Retrieval-Augmented Generation (RAG)**: Drivers inquiring "When did I last perform a Sunday run?" invoke an isolated RAG pipeline (powered by ChromaDB) that strictly answers natural language questions using fact-grounded `trip_history` vectors.
-4. **Resilient Rate Rotation Engines**: Heavy LangChain workloads easily trip commercial API limits. RoutAura leverages a `groq_rotator` hook to intercept HTTP 503 Overloads or 429 Statuses, transferring inference seamlessly to Google Gemini clusters on the fly so the end user never visualizes a failure state.
-5. **Contextual LLMOps Tracking**: A specialized LangChain callback layer captures payload latencies, API prompt variations, success metrics, and token consumption statistics routing them directly into PostgreSQL arrays.
-6. **Deterministic Route State Mutation**: Rather than trusting the LLM to remember and rewrite the user's entire multi-stop route array on every correction, RoutAura maintains strict deterministic state. Frontends inject the `current_route` into the backend context continuously, and the LLM merely interfaces with an atomic Python `@tool("modify_route")` to surgically alter precise positions without risking array drop-offs or hallucinated coordinates natively.
-7. **Conversational Edge-Case Hardening**: The Agent utilizes strict systemic guardrails isolating hallucination events. Missing geography on brand-swaps triggers interactive clarifiers ("Which city should I look for Target in?"). Dedicated duplicate request deduplication applies `session_id` MD5 caching with 5-second TTL auto-expirations, preventing cross-session blocking natively.
+4. **CDL Compliance Assistant**: To answer regulatory and safety questions natively, the agent intercepts compliance requests via a PRE-ANSWER COMPLIANCE GATE and queries `pgvector` stored chunks of official CDL Manuals using high-confidence cosine similarity matching (0.65 threshold) with explicit code citations perfectly eliminating hallucinations.
+5. **Resilient Rate Rotation Engines**: Heavy LangChain workloads easily trip commercial API limits. RoutAura leverages a `groq_rotator` hook to intercept HTTP 503 Overloads or 429 Statuses, transferring inference seamlessly to Google Gemini clusters on the fly so the end user never visualizes a failure state.
+6. **Contextual LLMOps Tracking**: A specialized LangChain callback layer captures payload latencies, API prompt variations, success metrics, and token consumption statistics routing them directly into PostgreSQL arrays.
+7. **Deterministic Route State Mutation**: Rather than trusting the LLM to remember and rewrite the user's entire multi-stop route array on every correction, RoutAura maintains strict deterministic state. Frontends inject the `current_route` into the backend context continuously, and the LLM merely interfaces with an atomic Python `@tool("modify_route")` to surgically alter precise positions without risking array drop-offs or hallucinated coordinates natively.
+8. **Conversational Edge-Case Hardening**: The Agent utilizes strict systemic guardrails isolating hallucination events. Missing geography on brand-swaps triggers interactive clarifiers ("Which city should I look for Target in?"). Dedicated duplicate request deduplication applies `session_id` MD5 caching with 5-second TTL auto-expirations, preventing cross-session blocking natively.
 
 ---
 
@@ -55,7 +57,7 @@ Explore deep-dive technical reasoning and architectural workflows within the ded
 
 - **[Technical Specification & DB Schema](./TECHNICAL_SPEC.md)**: Master schema modeling definitions, LangChain structural deployments, state fallback diagrams, and explicit API endpoint contract payloads.
 - **[Product Requirements Document (PRD)](./PRD.md)**: Targeted personas, exhaustive user impact variables, product featuresets, and hiring-showcase alignment.
-- **[Project Plan & Roadmap](./PROJECT_PLAN.md)**: The iterative phased mapping of the complete software lifecycle tracking the monolith across all exactly completed 23 phases.
+- **[Project Plan & Roadmap](./PROJECT_PLAN.md)**: The iterative phased mapping of the complete software lifecycle tracking the monolith across all exactly completed 27 phases.
 - **[Agent Control & Workflow Definitions](./CLAUDE.md)**: Standardized developer heuristics aligning collaborative toolings logic variables.
 
 ---
