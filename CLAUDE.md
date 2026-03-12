@@ -5,9 +5,9 @@
 
 ## What This Project Is
 
-**RoutAura** is a Progressive Web App for bus and professional drivers. Drivers describe their routes in plain conversational language, a **LangChain ReAct agent** orchestrates the AI logic (geocoding, SQL fuzzy search, state mutation), and the app launches navigation in Google Maps or Apple Maps. Trips are saved to PostgreSQL for structured retrieval and high-performance SQL `ILIKE` fuzzy recall. ChromaDB is used strictly for the History Q&A RAG pipeline.
+**RoutAura** is a Progressive Web App for bus and professional drivers. Drivers describe their routes in plain conversational language, a **LangChain ReAct agent** orchestrates the AI logic (geocoding, SQL fuzzy search, state mutation), and the app launches navigation in Google Maps or Apple Maps. Trips are saved to PostgreSQL for structured retrieval and high-performance SQL `ILIKE` fuzzy recall. History Q&A RAG is served via pure SQL queries against trip and stop tables natively.
 
-This project is simultaneously a **useful real-world app** and a **portfolio showcase** for GenAI / Agentic AI engineering roles. Every architectural decision is intentional and maps to skills in the target job descriptions (LangChain, ChromaDB, RAG, LLMOps, Responsible AI).
+This project is simultaneously a **useful real-world app** and a **portfolio showcase** for GenAI / Agentic AI engineering roles. Every architectural decision is intentional and maps to skills in the target job descriptions (LangChain, pgvector, RAG, LLMOps, Responsible AI).
 
 **Primary end user:** A non-technical school bus driver in his 50s. UI must be extremely simple, large-text, and mobile-first.  
 **Portfolio audience:** Engineering hiring managers evaluating GenAI / Agentic AI skills.
@@ -37,11 +37,11 @@ These decisions must not be changed without explicit user instruction:
 **1. LangChain ReAct Agent is the core AI layer.**  
 Do NOT call the Groq API directly for trip parsing. ALL AI orchestration goes through the LangChain `AgentExecutor` in `backend/app/agent/core.py`. The agent decides which tools to call. This is the most important architectural decision in the project.
 
-**2. ChromaDB + fastembed for History RAG only.**  
-Do NOT use OpenAI embeddings. Use `BAAI/bge-small-en-v1.5` from `fastembed` for local vector execution. ChromaDB is strictly reserved for the History Q&A feature (`/rag/query`). Do NOT use ChromaDB for trip or stop name searches.
+**2. pgvector + fastembed for Compliance RAG.**  
+Do NOT use OpenAI embeddings. Use `BAAI/bge-small-en-v1.5` from `fastembed` for local vector execution. History Q&A uses pure SQL string retrievals instead of vectors.
 
 **3. Source of Truth: Supabase PostgreSQL (and pgvector).**  
-PostgreSQL holds all authoritative trip and stop data. Fuzzy search for trips and stops is implemented via SQL `ILIKE` pattern matching in `tools.py`. The CDL Compliance Assistant uses `pgvector` natively stored within Supabase PostgreSQL for its RAG embeddings. We no longer dual-write trips or stops to ChromaDB. The only things in ChromaDB are historical trip logs for RAG.
+PostgreSQL holds all authoritative trip and stop data. Fuzzy search for trips and stops is implemented via SQL `ILIKE` pattern matching in `tools.py`. The CDL Compliance Assistant uses `pgvector` natively stored within Supabase PostgreSQL for its RAG embeddings. We no longer write anything to ChromaDB — it has been completely removed to prevent synchronization drift.
 
 **4. No custom navigation.**  
 We do NOT build turn-by-turn navigation. We build Google Maps / Apple Maps deep link URLs and open them with `window.open()`. The navigation happens entirely in external apps.
@@ -53,7 +53,7 @@ Every user message must pass through `moderation_service.is_safe()` before reach
 The `LLMOpsCallbackHandler` is always attached to the `AgentExecutor`. RAG pipeline calls must also be logged. The `llm_logs` table must have a row for every LLM call made by the system.
 
 **7. User authentication and data isolation is required (Phase 17+).**  
-All users must sign up/login. JWTs use a 30m access/7d refresh format and are stored in memory, not localStorage. All PostgreSQL queries and ChromaDB collections (`trip_history_{user_id}`) must be dynamically scoped/namespaced to the logged-in user.
+All users must sign up/login. JWTs use a 30m access/7d refresh format and are stored in memory, not localStorage. All PostgreSQL queries (`trip_history`, `trips`) must be dynamically scoped/namespaced to the logged-in user.
 
 **8. Public Landing Page vs Authenticated App.**  
 The root route `/` is a public marketing Landing Page. The authenticated app begins at `/home` (and includes `/chat`, `/trips`, etc). Logged-in users visiting `/` are redirected to `/home`. 
@@ -102,7 +102,7 @@ async def create_trip(db: Session, trip_data: TripCreate) -> Trip:
         db_stop = models.Stop(trip_id=db_trip.id, **stop_data.dict())
         db.add(db_stop)
     
-    # 3. NO ChromaDB dual-write for trips/stops!
+    # 3. NO vector dual-write for trips/stops required!
     # (Trip search is handled via SQL ILIKE in tools.py)
     # (Compliance RAG is natively handled via pgvector)
     
@@ -196,15 +196,7 @@ def format_history(raw_history: list[dict]) -> list:
 
 ---
 
-## ChromaDB — Important Implementation Notes
-
-**Chroma persistent client path:** Always use `./chroma_db` as the path, relative to where uvicorn is run (the `backend/` directory). The `chroma_db/` folder is created automatically.
-
-**Collection similarity metric:** Always create collections with `metadata={"hnsw:space": "cosine"}`. The default is L2 distance, which gives misleading scores for text similarity.
-
-**Similarity score from distances:** ChromaDB returns `distances` (lower = more similar for cosine). Convert to similarity: `similarity = 1 - distance`. Scores above 0.7 are usually good matches; below 0.5 are likely noise.
-
-**Deleting documents:** When a trip is deleted, the vector data in `trip_history` remains for RAG purposes unless the entire account is deleted. Trip and stop PostgreSQL rows are purged via cascading deletes.
+## Vector & Embeddings — Important Implementation Notes
 
 **Embedding at startup:** The fastembed model takes a few seconds to load on first import. Load it once at module level in `vector_service.py`, not inside each function call. FastAPI startup will be slightly slow but subsequent calls will be fast.
 
@@ -212,12 +204,12 @@ def format_history(raw_history: list[dict]) -> list:
 
 ## RAG Pipeline — Implementation Notes
 
-The RAG pipeline in `rag_service.py` must:
+The RAG pipeline (`compliance_service.py`) must:
 1. Embed the question with the same `embedding_model` from `vector_service.py` — **not a separate model instance**
-2. Query `history_collection` not `trips_collection` (history entries are the RAG knowledge base)
+2. Query `compliance_chunks` using pgvector's cosine distance operator `(<=>)` natively inside Supabase Postgres
 3. Pass retrieved documents as a formatted context block, clearly labelled, to Groq
 4. Instruct the LLM explicitly in the system prompt to answer only from context, not from general knowledge
-5. Return the answer AND the number of sources used (shown in the UI as credibility signal)
+5. Enforce structured `📚 Source:` citations accurately returned from the database schema
 
 ---
 
@@ -250,14 +242,11 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
         cursor.close()
 ```
 
-**FastAPI startup event** for creating tables and ChromaDB collections:
+**FastAPI startup event** for creating tables:
 ```python
 @app.on_event("startup")
 async def startup_event():
     Base.metadata.create_all(bind=engine)
-    # ChromaDB collections are created in vector_service.py module init
-    # so just importing it is enough
-    from app.services import vector_service  # noqa
 ```
 
 **React Router v6** uses `<Routes>` not `<Switch>`, and `element={<Component />}` not `component={Component}`.
@@ -273,8 +262,7 @@ async def startup_event():
 **Backend tasks:**
 - [ ] Endpoint returns correct HTTP status code
 - [ ] Pydantic schema validation catches bad input (test with a missing required field)
-- [ ] SQLite write succeeded (query the table after)
-- [ ] ChromaDB write succeeded where applicable (query the collection after)
+- [ ] Postgres write succeeded (query the table after)
 - [ ] LLM call is logged in `llm_logs` table
 - [ ] No unhandled exceptions in uvicorn output
 
@@ -297,7 +285,6 @@ SUPABASE_URL=                # Supabase project URL
 SUPABASE_ANON_KEY=           # Supabase anonymous anon key
 SUPABASE_SERVICE_ROLE_KEY=   # Supabase service role key (for backend admin tasks)
 DATABASE_URL=postgresql://... # Supabase PostgreSQL connection string
-CHROMA_DB_PATH=./chroma_db
 DEFAULT_CITY=New York, NY
 CORS_ORIGINS=http://localhost:5173
 ACTIVE_PROMPT_VERSION=agent_v1
@@ -316,7 +303,6 @@ Never hardcode keys. Never commit `.env` files. Add `.env` to `.gitignore`.
 - `TECHNICAL_SPEC.md` — Full schema, API contracts, agent code, service implementations
 - `PROJECT_PLAN.md` — 130 tasks across 17 phases with checkboxes
 - LangChain docs: https://python.langchain.com/docs/
-- ChromaDB docs: https://docs.trychroma.com/
 - fastembed: https://qdrant.github.io/fastembed/
 - Groq API docs: https://console.groq.com/docs/openai
 - Google Maps URL scheme: https://developers.google.com/maps/documentation/urls/get-started

@@ -28,14 +28,14 @@ Ship the agentic AI core natively first — establishing absolute structural sta
 
 ---
 
-## Phase 1 — Local Database Setup (SQLite MVP + ChromaDB)
+## Phase 1 — Local Database Setup (SQLite MVP)
 *Goal: Base databases initialized locally for fast testing validation.*
 
 - [x] **T011** — Create SQLAlchemy SQLite MVP engine
 - [x] **T012** — Model initial `Trip`, `Stop`, `TripHistory`, `LLMLog` models
 - [x] **T013** — Support PRAGMA mappings
 - [x] **T014** — Configure Startup event logic
-- [x] **T015** — Bootstrap ChromaDB collections: `trip_history` (strictly for RAG)
+- [x] **T015** — Bootstrap database tables: `trip_history` (strictly for History Q&A)
 - [x] **T016** — Standardize `schemas.py` Pydantic models
 - [x] **T017** — Validate offline read-writes
 
@@ -101,7 +101,7 @@ Ship the agentic AI core natively first — establishing absolute structural sta
 *Goal: Establish robust multi-state persistence endpoints handling complex UUID routing queries.*
 
 - [x] **T053** — Define robust generic CRUD routing clusters securely passing database arguments
-- [x] **T054** — Hook logical bindings deleting orphaned Vector definitions dynamically 
+- [x] **T054** — Hook logical bindings deleting orphaned data definitions dynamically 
 - [x] **T055** — Bind user context headers implicitly preventing cross-tenant leakage 
 - [x] **T056** — Verify RAG logging architectures successfully process active JSON variables
 - [x] **T057** — Expose `/api/v1` routes matching exact frontend signatures
@@ -151,7 +151,7 @@ Ship the agentic AI core natively first — establishing absolute structural sta
 ---
 
 ## Phase 13 & 14 — Semantic Search + Embedded History Q&A 
-*Goal: Vector architectures mapped explicitly against human-readable GUI elements.*
+*Goal: SQL fuzzy search architectures mapped explicitly against human-readable GUI elements.*
 
 - [x] **T100** — Construct global Library parameters executing real-time similarity clustering
 - [x] **T101** — Process search delays protecting API bounds through custom Debounce algorithms 
@@ -194,7 +194,7 @@ Ship the agentic AI core natively first — establishing absolute structural sta
 - [x] **T134** — Update Model targets executing `UUID` explicit string arrays bounding relational queries natively 
 - [x] **T135** — Alter local FastAPI engine executing remote PGSQL parameters securely mapping external DSN variables
 - [x] **T136** — Remap all internal `service` definitions targeting `str` variables replacing raw integers completely 
-- [x] **T137** — Support asynchronous user cascade drops triggering ChromaDB isolation logic flawlessly 
+- [x] **T137** — Support asynchronous user cascade drops triggering data isolation logic flawlessly 
 
 ---
 

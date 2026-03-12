@@ -16,7 +16,7 @@ School bus drivers and professional logistics contractors manually re-enter iden
 ### 1.2 Solution
 RoutAura is a robust Progressive Web App powered by a **LangChain-orchestrated Zero-Shot ReAct AI agent** empowering users to command routes conversationally. The deployed Agent isolates intent, engages custom backend toolkits to geocode ambiguous addresses, and uses high-performance PostgreSQL `ILIKE` pattern matching to retrieve historical trips and stops natively.
 
-Every route config is stored in **Supabase PostgreSQL** enabling ultra-fast fuzzy recall (e.g. "The usual PM run"). **ChromaDB** is strictly reserved for the History Q&A RAG pipeline, ensuring deep natural language grounded facts.
+Every route config is stored in **Supabase PostgreSQL** enabling ultra-fast fuzzy recall (e.g. "The usual PM run"). The History Q&A RAG pipeline uses pure SQL retrieval, ensuring deep natural language grounded facts.
 
 ### 1.3 Agentic Engineering Architectures
 RoutAura avoids archaic direct-LLM generation paradigms representing naive Chatbot workflows. It simulates enterprise agentic system deployments safely:
@@ -126,7 +126,7 @@ RoutAura natively illustrates direct experience matrices heavily required agains
 | Complex Backend Orchestration natively | Python 3.12+ FastAPI |
 | Deep Multi-LLM API Integrations | Groq APIs gracefully bridging Google Gemini endpoints defensively |
 | Robust Fuzzy AI Integrations | Optimized PostgreSQL SQL `ILIKE` pattern matching |
-| Genuine RAG application deployment | Functional user-interactive QA log architectures via ChromaDB |
+| Genuine RAG application deployment | Functional user-interactive QA log architectures via PostgreSQL SQL retrieval |
 | Production Container Cloud scaling | Railway App clusters binding generic Supabase endpoints natively |
 | UI/UX Consumer Architectures | Dynamic CSS Grid manipulations building active Glassmorphism logic arrays natively |
 | Secure API Identity brokering | Deep native Supabase OAuth setups bypassing manual data-entry limits |  

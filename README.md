@@ -24,7 +24,6 @@ This implementation acts fundamentally as a robust portfolio benchmark reflectin
 - **Google Gemini API** (`gemini-2.5-flash` natively integrated fallback pipeline for zero-downtime routing processing)
 - **Fastembed** ONNX framework (`BAAI/bge-small-en-v1.5` for local, cost-free vector execution devoid of heavy PyTorch instances)
 - **pgvector** (Supabase native vector storage for CDL Compliance Assistant RAG)
-- **ChromaDB** (Semantic vector database for History RAG)
 
 **Backend & Data Layer:**
 - **FastAPI** (Python 3.12+ concurrent asyncio API handling)
@@ -42,7 +41,7 @@ This implementation acts fundamentally as a robust portfolio benchmark reflectin
 
 1. **ReAct Agent Autonomy**: User inputs are mathematically structured via ReAct heuristics rather than blindly passed to static generation frameworks. The Agent sequences `Thought` → `Action` → `Observation` loops internally, picking from 5 distinct tool clusters (Database indexing, vector indexing, Google Maps Live APIs, etc.) until it constructs a confident mapping package.
 2. **Fuzzy Search Memory**: Every saved trip and stop is indexed in PostgreSQL. The Agent uses advanced SQL `ILIKE` pattern matching with automatic plural handling and root-word expansion. Typing "The high school" or "hospitals" finds the specific historically referenced coordinates without generic Google Maps noise.
-3. **Retrieval-Augmented Generation (RAG)**: Drivers inquiring "When did I last perform a Sunday run?" invoke an isolated RAG pipeline (powered by ChromaDB) that strictly answers natural language questions using fact-grounded `trip_history` vectors.
+3. **Retrieval-Augmented Generation (RAG)**: Drivers inquiring "When did I last perform a Sunday run?" invoke an isolated History Q&A pipeline (powered by pure SQL) that strictly answers natural language questions using fact-grounded `trip_history` and `trips` retrievals natively.
 4. **CDL Compliance Assistant**: To answer regulatory and safety questions natively, the agent intercepts compliance requests via a PRE-ANSWER COMPLIANCE GATE and queries `pgvector` stored chunks of official CDL Manuals using high-confidence cosine similarity matching (0.65 threshold) with explicit code citations perfectly eliminating hallucinations.
 5. **Resilient Rate Rotation Engines**: Heavy LangChain workloads easily trip commercial API limits. RoutAura leverages a `groq_rotator` hook to intercept HTTP 503 Overloads or 429 Statuses, transferring inference seamlessly to Google Gemini clusters on the fly so the end user never visualizes a failure state.
 6. **Contextual LLMOps Tracking**: A specialized LangChain callback layer captures payload latencies, API prompt variations, success metrics, and token consumption statistics routing them directly into PostgreSQL arrays.
