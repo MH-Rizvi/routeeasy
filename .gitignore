@@ -13,3 +13,4 @@ dist/
 *.log
 project_description.md
 progress.md
+.agent/
