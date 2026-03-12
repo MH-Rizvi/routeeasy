@@ -944,7 +944,7 @@ export default function LandingPage() {
                         <div className="overflow-hidden flex-1" style={{ maskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)' }}>
                             <div className="flex gap-4 stack-marquee" style={{ width: 'max-content' }}>
                                 {[...Array(2)].map((_, setIdx) =>
-                                    ['LangChain', 'pgvector', 'Groq AI', 'Supabase', 'FastAPI', 'Fastembed', 'React', 'Vite'].map((tech, i) => (
+                                    ['LangChain', 'ReAct Agent', 'RAG Pipeline', 'pgvector', 'Groq AI', 'Gemini', 'FastAPI', 'Supabase', 'Railway', 'React PWA'].map((tech, i) => (
                                         <span key={`${setIdx}-${i}`} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.06] text-white/45 text-[12px] font-medium whitespace-nowrap shrink-0 hover:text-amber-400 hover:border-amber-500/25 hover:bg-amber-500/[0.06] transition-all duration-300 cursor-default">
                                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500/40" />
                                             {tech}
@@ -1732,10 +1732,11 @@ export default function LandingPage() {
                         <div>
                             <h4 className="text-white/60 text-[11px] font-bold tracking-widest uppercase mb-4">Built With</h4>
                             <ul className="space-y-2.5">
-                                <li><span className="text-white/40 text-[13px]">LangChain</span></li>
-                                <li><span className="text-white/40 text-[13px]">pgvector</span></li>
-                                <li><span className="text-white/40 text-[13px]">Supabase</span></li>
-                                <li><span className="text-white/40 text-[13px]">Groq AI</span></li>
+                                <li><span className="text-white/40 text-[13px]">LangChain & ReAct Agent</span></li>
+                                <li><span className="text-white/40 text-[13px]">Groq AI & Gemini</span></li>
+                                <li><span className="text-white/40 text-[13px]">Supabase & pgvector</span></li>
+                                <li><span className="text-white/40 text-[13px]">FastAPI & React PWA</span></li>
+                                <li><span className="text-white/40 text-[13px]">Deployed on Railway</span></li>
                             </ul>
                         </div>
 
@@ -1752,28 +1753,7 @@ export default function LandingPage() {
 
                     <div className="border-t border-white/[0.06] pt-6 text-center">
                         <p className="text-white/20 text-[12px]">© 2026 RoutAura. Built for drivers, powered by AI.</p>
-                        {/* Optional: Move tech stack list to footer */}
                         <p className="text-white/10 text-[10px] mt-2">Built with ❤️ and modern AI tools</p>
-                        <div className="flex items-center gap-4 justify-center mt-2">
-                            <span className="px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.04] text-white/30 text-[10px] font-medium whitespace-nowrap shrink-0 hover:text-white/40 hover:border-white/[0.06] transition-colors">
-                                LangChain
-                            </span>
-                            <span className="px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.04] text-white/30 text-[10px] font-medium whitespace-nowrap shrink-0 hover:text-white/40 hover:border-white/[0.06] transition-colors">
-                                pgvector
-                            </span>
-                            <span className="px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.04] text-white/30 text-[10px] font-medium whitespace-nowrap shrink-0 hover:text-white/40 hover:border-white/[0.06] transition-colors">
-                                Groq AI
-                            </span>
-                            <span className="px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.04] text-white/30 text-[10px] font-medium whitespace-nowrap shrink-0 hover:text-white/40 hover:border-white/[0.06] transition-colors">
-                                Supabase
-                            </span>
-                            <span className="px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.04] text-white/30 text-[10px] font-medium whitespace-nowrap shrink-0 hover:text-white/40 hover:border-white/[0.06] transition-colors">
-                                FastAPI
-                            </span>
-                            <span className="px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.04] text-white/30 text-[10px] font-medium whitespace-nowrap shrink-0 hover:text-white/40 hover:border-white/[0.06] transition-colors">
-                                Fastembed
-                            </span>
-                        </div>
                     </div>
                 </div>
             </footer>
