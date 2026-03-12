@@ -13,7 +13,7 @@ from langchain.tools import tool  # pyright: ignore[reportMissingImports]
 
 from app.database import SessionLocal  # pyright: ignore[reportMissingImports]
 from app import models, schemas
-from app.services import geocoding_service, vector_service
+from app.services import geocoding_service
 from app.services import trips_service
 
 # Context variables for injecting request-scoped data into tools
@@ -69,20 +69,6 @@ async def geocode_stop_tool(query: str) -> Dict[str, Any]:
         return {"error": result.get("error", "This stop could not be found. Please ask the driver for a better description of this specific stop only.")}
     
     return result
-
-
-@tool("search_saved_stops")
-async def search_saved_stops_tool(query: str) -> List[Dict[str, Any]]:
-    """
-    Searches previously saved stops using semantic similarity.
-
-    Input: description of the stop (string).
-    Output: list of similar saved stops with similarity scores.
-    """
-    user_id = user_id_ctx.get()
-    if user_id is None:
-        return []
-    return vector_service.search_stops(query, user_id, top_k=3)
 
 
 @tool("search_saved_trips")

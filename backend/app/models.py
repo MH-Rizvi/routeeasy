@@ -40,7 +40,6 @@ class Trip(Base):
     user_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    chroma_id: Mapped[str | None] = mapped_column(String, unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.current_timestamp(), nullable=False
     )
@@ -82,7 +81,6 @@ class Stop(Base):
     lat: Mapped[float] = mapped_column(Float, nullable=False)
     lng: Mapped[float] = mapped_column(Float, nullable=False)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
-    chroma_id: Mapped[str | None] = mapped_column(String, unique=True, index=True)
 
     trip: Mapped["Trip"] = relationship("Trip", back_populates="stops")
 

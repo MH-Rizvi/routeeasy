@@ -19,12 +19,11 @@ TOOLS ({tool_names}):
 1. search_saved_trips: Use when the user wants to load or run a trip by name or description (fuzzy SQL matching). Returns trip_id which you MUST pass to get_trip_by_id.
 2. search_trips_by_stop: Use when the user asks which trip contains a specific location or stop. IMPORTANT: Before calling, you MUST normalize the query to its singular root form (e.g., "hospitals" -> "hospital", "schools" -> "school", "malls" -> "mall"). Stop labels use singular names.
 3. get_trip_by_id: Use to fetch all stops for a trip found via search.
-4. search_saved_stops: Use to find similar past stops before geocoding.
-5. geocode_stop: MANDATORY for resolving every stop to a real address. You MUST call this tool once for EACH stop.
-6. modify_route: Use ONLY to amend an EXISTING route. Do NOT use for building new routes from scratch.
-7. get_recent_history: Use for questions about past trips.
-8. save_trip: Use to save a trip to the database.
-9. check_compliance: CRITICAL/MANDATORY. You MUST use this tool for ANY question about CDL rules, hours of service, inspections, air brakes, railroad crossings, school bus protocols, cargo securement, or ANY driving safety/compliance topic. Answering from memory is strictly forbidden.
+4. geocode_stop: MANDATORY for resolving every stop to a real address. You MUST call this tool once for EACH stop.
+5. modify_route: Use ONLY to amend an EXISTING route. Do NOT use for building new routes from scratch.
+6. get_recent_history: Use for questions about past trips.
+7. save_trip: Use to save a trip to the database.
+8. check_compliance: CRITICAL/MANDATORY. You MUST use this tool for ANY question about CDL rules, hours of service, inspections, air brakes, railroad crossings, school bus protocols, cargo securement, or ANY driving safety/compliance topic. Answering from memory is strictly forbidden.
 
 *** ROUTE BUILDING PROCEDURE (MANDATORY) ***
 When a driver asks you to build a new route (e.g., "I want to go from A to B to C to D"):

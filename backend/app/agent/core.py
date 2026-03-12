@@ -18,7 +18,6 @@ from app.agent.callbacks import LLMOpsCallbackHandler # pyright: ignore[reportMi
 from app.agent.prompts import SYSTEM_PROMPT_v1
 from app.agent.tools import (
     geocode_stop_tool,
-    search_saved_stops_tool,
     search_saved_trips_tool,
     search_trips_by_stop,
     get_trip_by_id_tool,
@@ -36,7 +35,6 @@ logger = logging.getLogger(__name__)
 
 _tools = [
     geocode_stop_tool,
-    search_saved_stops_tool,
     search_saved_trips_tool,
     search_trips_by_stop,
     get_trip_by_id_tool,

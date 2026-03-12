@@ -35,10 +35,6 @@ class Settings(BaseSettings):
         default="sqlite:///./routeeasy.db",
         env="DATABASE_URL",
     )
-    chroma_db_path: str = Field(
-        default="./chroma_db",
-        env="CHROMA_DB_PATH",
-    )
 
     default_city: str = Field(
         default="New York, NY",
