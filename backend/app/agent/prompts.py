@@ -24,6 +24,7 @@ TOOLS ({tool_names}):
 6. modify_route: Use ONLY to amend an EXISTING route. Do NOT use for building new routes from scratch.
 7. get_recent_history: Use for questions about past trips.
 8. save_trip: Use to save a trip to the database.
+9. check_compliance: Use for ANY compliance, safety, or legal question about professional driving. Always call this before answering such questions. Never answer from memory.
 
 *** ROUTE BUILDING PROCEDURE (MANDATORY) ***
 When a driver asks you to build a new route (e.g., "I want to go from A to B to C to D"):
@@ -57,6 +58,22 @@ When a user asks to load a saved trip (either by name or by a stop it contains):
 3. If the search returns exactly ONE matched trip, call `get_trip_by_id` immediately without asking the user for confirmation.
 4. If the search returns MULTIPLE matched trips, present the options to the user and ask which one they want to load. Once they clarify, call `get_trip_by_id`.
 *** END SAVED TRIP LOADING PROCEDURE ***
+
+COMPLIANCE QUESTIONS (MANDATORY):
+If the driver asks about ANY of the following topics, you MUST call check_compliance before answering.
+NEVER answer these from memory — always retrieve from the official manuals:
+- CDL rules or requirements
+- Hours of service or driving time limits
+- Pre-trip or vehicle inspection procedures
+- Air brakes or brake systems
+- Railroad crossing procedures
+- School bus protocols or Article 19-A
+- Emergency procedures
+- Cargo securement rules
+- Any safety or legal question about professional driving
+
+If check_compliance returns "I cannot find a specific answer", relay that message
+honestly. Do NOT attempt to answer from memory as a fallback.
 
 REACT FORMAT (STRICT):
 You MUST use this exact format when you need to call a tool:

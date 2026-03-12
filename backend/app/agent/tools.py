@@ -472,3 +472,38 @@ async def modify_route_tool(input_str: str) -> str:
             for i, stop in enumerate(route):
                 stop["position"] = i
             return f"Successfully added '{new_stop['resolved']}' at position {position}."
+
+@tool("check_compliance")
+def check_compliance_tool(question: str) -> str:
+    """
+    Use this tool for ANY question about CDL rules, driving regulations,
+    hours of service, vehicle inspections, pre-trip inspection, railroad crossings,
+    school bus protocols, Article 19-A, emergency procedures, or any safety or
+    legal question related to professional driving.
+
+    ALWAYS call this tool before answering compliance questions.
+    NEVER answer compliance questions from memory.
+
+    Input: the driver's compliance question as a plain string.
+    Output: grounded answer with source citations, or a message saying it cannot be found.
+    """
+    from app.database import SessionLocal
+    from app.services.compliance_service import query_compliance
+    from sqlalchemy import text
+
+    user_id = user_id_ctx.get()
+    db = SessionLocal()
+    try:
+        row = db.execute(
+            text("SELECT state FROM user_profiles WHERE user_id = :uid"),
+            {"uid": user_id}
+        ).fetchone()
+        user_state = row.state if row else "NY"
+
+        return query_compliance(
+            question=question,
+            user_state=user_state,
+            db=db,
+        )
+    finally:
+        db.close()
