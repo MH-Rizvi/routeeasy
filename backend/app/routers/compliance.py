@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.auth import admin_required
 from app.database import get_db
 from app.services.compliance_service import ingest_document, query_compliance
 
@@ -74,10 +75,14 @@ DOCUMENT_MANIFEST = [
 
 
 @router.post("/ingest")
-async def ingest_all_documents(db: Session = Depends(get_db)) -> dict[str, Any]:
+async def ingest_all_documents(
+    db: Session = Depends(get_db),
+    _admin=Depends(admin_required),
+) -> dict[str, Any]:
     """
     Admin endpoint — ingests all documents in DOCUMENT_MANIFEST into compliance_chunks.
     Idempotent — skips documents already ingested.
+    Requires authenticated user with role='admin'.
     """
     results = []
     errors = []

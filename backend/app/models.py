@@ -31,6 +31,7 @@ class UserProfile(Base):
     state: Mapped[str] = mapped_column(String, nullable=False)
     zip_code: Mapped[str] = mapped_column(String, nullable=False)
     full_location: Mapped[str] = mapped_column(String, nullable=False)
+    role: Mapped[str] = mapped_column(String(20), nullable=False, server_default="user")
 
 
 class Trip(Base):
