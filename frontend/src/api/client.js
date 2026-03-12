@@ -213,6 +213,11 @@ export const getLLMLogs = async () => {
     return data;
 };
 
+export const getAdminMetrics = async () => {
+    const { data } = await api.get('/admin/metrics');
+    return data;
+};
+
 // ─────────────────────────────────────────────
 // Voice
 // ─────────────────────────────────────────────

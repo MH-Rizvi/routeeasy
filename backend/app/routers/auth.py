@@ -241,6 +241,7 @@ async def me(current_user: Any = Depends(get_current_user), db: Session = Depend
             "state": profile.state,
             "zip_code": profile.zip_code,
             "full_location": profile.full_location,
+            "role": profile.role or "user",
             "is_new_user": is_new
         }
     except Exception as e:

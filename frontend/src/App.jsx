@@ -16,6 +16,7 @@ import AccountScreen from './screens/AccountScreen';
 import LandingPage from './screens/LandingPage';
 import AuthCallbackScreen from './screens/AuthCallbackScreen';
 import CompleteProfileScreen from './screens/CompleteProfileScreen';
+import AdminDashboard from './screens/AdminDashboard';
 import Toast from './components/Toast';
 import ProtectedRoute from './components/ProtectedRoute';
 import useAuthStore from './store/authStore';
@@ -117,6 +118,34 @@ function DesktopSidebar() {
                             </NavLink>
                         );
                     })}
+
+                    {/* Admin link — only visible to admin users */}
+                    {user?.role === 'admin' && (() => {
+                        const isAdminActive = location.pathname === '/admin';
+                        return (
+                            <>
+                                <div className="mx-1 my-2 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+                                <NavLink
+                                    to="/admin"
+                                    className="relative flex items-center gap-3 px-4 py-3 rounded-xl text-[14px] font-medium transition-all duration-200 group"
+                                    style={isAdminActive ? {
+                                        background: 'linear-gradient(90deg, rgba(245,158,11,0.12) 0%, transparent 100%)',
+                                        color: '#F59E0B',
+                                        borderLeft: '4px solid #F59E0B',
+                                        boxShadow: 'inset 4px 0 10px -4px rgba(245,158,11,0.5)',
+                                    } : {
+                                        color: '#94A3B8',
+                                        borderLeft: '4px solid transparent',
+                                    }}
+                                >
+                                    <div className={`transition-all duration-300 ${isAdminActive ? 'drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]' : 'group-hover:text-white group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]'}`}>
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                                    </div>
+                                    <span className={`${isAdminActive ? '' : 'group-hover:text-white'} transition-colors`}>Admin</span>
+                                </NavLink>
+                            </>
+                        );
+                    })()}
                 </nav>
 
                 {/* ── Divider ── */}
@@ -292,6 +321,7 @@ function AppShell() {
                         <Route path="/history" element={<HistoryScreen />} />
                         <Route path="/stats" element={<StatsScreen />} />
                         <Route path="/account" element={<AccountScreen />} />
+                        <Route path="/admin" element={<AdminDashboard />} />
                     </Route>
                 </Routes>
             </main>
