@@ -45,14 +45,18 @@ class Settings(BaseSettings):
         env="DEFAULT_CITY",
     )
 
-    cors_origins: List[AnyHttpUrl] | List[str] = Field(
-        default_factory=lambda: ["http://localhost:5173"],
+    cors_origins: List[str] = Field(
+        default_factory=lambda: ["http://localhost:5173", "http://192.168.1.168:5173"],
         env="CORS_ORIGINS",
     )
 
     active_prompt_version: str = Field(
         default="agent_v1",
         env="ACTIVE_PROMPT_VERSION",
+    )
+    documents_path: str = Field(
+        default="./documents",
+        env="DOCUMENTS_PATH",
     )
 
     @property

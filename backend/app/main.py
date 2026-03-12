@@ -2,6 +2,13 @@
 from __future__ import annotations
 
 import logging
+import sys
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+    stream=sys.stdout,
+)
 
 from fastapi import FastAPI, Request  # pyright: ignore[reportMissingImports]
 from fastapi.exceptions import RequestValidationError  # pyright: ignore[reportMissingImports]
@@ -16,6 +23,7 @@ from app.services import vector_service  # noqa: F401  # ensure collections are 
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.rate_limit import limiter
+from app.routers import compliance
 
 
 logger = logging.getLogger(__name__)
@@ -97,3 +105,4 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(stats.router, prefix="/api/v1")
 app.include_router(places.router, prefix="/api/v1")
 app.include_router(directions.router, prefix="/api/v1")
+app.include_router(compliance.router, prefix="/api/v1")

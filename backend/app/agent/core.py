@@ -25,6 +25,7 @@ from app.agent.tools import (
     get_recent_history_tool,
     save_trip_tool,
     modify_route_tool,
+    check_compliance_tool,
 )
 from app.services import directions_service
 from app.services.groq_client import groq_rotator, _is_rate_limit_error
@@ -42,6 +43,7 @@ _tools = [
     get_recent_history_tool,
     save_trip_tool,
     modify_route_tool,
+    check_compliance_tool,
 ]
 
 _prompt = PromptTemplate(
