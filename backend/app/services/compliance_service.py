@@ -160,4 +160,9 @@ def query_compliance(question: str, user_state: str, db: Session, top_k: int = 5
         context_blocks.append(f"[{citation}]\n{row.content}")
 
     context_str = "\n\n".join(context_blocks)
-    return f"Here is what the official CDL manual says. Use this to answer the driver's question directly and concisely:\n\n{context_str}"
+    return f"""Here is what the official CDL manual says. Use this to answer the driver's question directly and concisely.
+
+IMPORTANT: You MUST end your answer with a citations line listing the sources used, formatted exactly like this:
+📚 Source: NY CDL Manual — Air Brakes, p.76
+
+{context_str}"""
