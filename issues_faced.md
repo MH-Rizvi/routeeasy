@@ -579,3 +579,17 @@ Because the replacement query "Target" lacked an explicit city, the geocoding se
 ### Resolution Implemented
 1. **Strict Missing City Prompt Injection:** Deployed a hard `MISSING CITY` rule directly into the System Prompt. The LLM is now actively ordered: *If the user says "make it Target" with NO city, you MUST ask "Which city should I look for [store] in?" BEFORE calling `modify_route`.*
 2. **Context Annihilation Command:** The prompt explicitly forbids guessing the city from the previous stop's address during brand swaps natively.
+
+## Issue 38: Agent Hallucinating Compliance Answers (Skipping RAG Tool)
+**Phase:** RAG Feature Implementation / Compliance Assistant
+**Date Identified:** March 11, 2026
+**Severity:** CRITICAL (Safety/Legal Hallucination)
+
+### Description
+The LLM (Llama 3.3 70B) was bypassing the newly added `check_compliance` tool when users asked about air brakes, hours of service, or railroad crossings. Instead of retrieving verified manual chunks, the model answered confidently from its own pre-trained memory weights.
+
+### Root Cause Analysis
+The system prompt contained a section instructing the agent to use the tool, but large language models, especially highly capable ones like Llama 3.3 70B, often suffer from "overconfidence" on topics they know well (like general driving rules). If the prompt constraint isn't incredibly strict, the LLM determines that calling the tool is unnecessary latency and just answers directly, leading to plausible but ungrounded (and potentially legally inaccurate) responses.
+
+### Resolution Implemented
+1. **Aggressive Prompt Forcing:** Rewrote the `COMPLIANCE QUESTIONS` block in `prompts.py` to use extremely strict negative constraints ("YOU ARE STRICTLY FORBIDDEN", "CRITICAL - NO HALLUCINATIONS", "WARNING: Do NOT attempt to be helpful by guessing"). We explicitly framed answering without the tool as giving "illegal or unsafe advice" to trigger the LLM's own safety alignment to prefer tool usage over guessing.
