@@ -23,3 +23,4 @@ COMPLIANCE_FEATURE.md
 
 # RAG evaluation output files
 backend/scripts/eval_results_*.json
+RAG_TEST.pdf
