@@ -20,3 +20,6 @@ progress.md
 project_description.md
 test_application.md
 COMPLIANCE_FEATURE.md
+
+# RAG evaluation output files
+backend/scripts/eval_results_*.json
